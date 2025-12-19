@@ -6,6 +6,8 @@ import v1Routes from "./v1/routes/index.js";
 import { notFound } from "./middlewares/notFound.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
+import authRoutes from "./v1/auth/auth.routes.js";
+
 export function createApp() {
   const app = express();
 
@@ -15,6 +17,8 @@ export function createApp() {
 
   // API versionada
   app.use("/api/v1", v1Routes);
+
+  app.use("/api/v1/auth", authRoutes);
 
   // 404 + error handler
   app.use(notFound);
