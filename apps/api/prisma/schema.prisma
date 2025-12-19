@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+  // Añade esta línea para ayudar a Node a encontrar el motor
+  engineType = "library"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model user {
+  id                   Int       @id @default(autoincrement())
+
+  numeroTrabajador     String?   @db.VarChar(20) @unique
+  usuario              String    @db.VarChar(50) @unique
+  email                String    @db.VarChar(150) @unique
+
+  nombre               String    @db.VarChar(80)
+  apellidoPaterno      String    @db.VarChar(80)
+  apellidoMaterno      String?   @db.VarChar(80)
+
+  passwordHash         String?   @db.VarChar(255)
+  usaAuthInstitucional Boolean   @default(false)
+
+  activo               Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  roles                user_rol[]
+}
+
+model rol {
+  id        Int      @id @default(autoincrement())
+  clave     String   @unique // Ej: "ADMIN", "CAPTURISTA", "EVALUADOR_PAR", "VALIDADOR_INST"
+  nombre    String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuarios  user_rol[]
+}
+
+model user_rol {
+  userId Int
+  rolId  Int
+
+  user   user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rol    rol  @relation(fields: [rolId], references: [id], onDelete: Cascade)
+
+  @@id([userId, rolId])
+}
+
+model delegacion {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  planteles plantel[]
+}
+
+model plantel {
+  id           Int        @id @default(autoincrement())
+  nombre       String     @unique
+  delegacionId Int
+  activo       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  delegacion   delegacion @relation(fields: [delegacionId], references: [id])
+
+  buenasPracticas buena_practica[]
+}
+
+model dependencia {
+  id              Int           @id @default(autoincrement())
+  idInstitucional String        @db.VarChar(10) @unique
+  nombre          String
+  padreId         Int?
+  activo          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  padre           dependencia?  @relation("dep_padre_hijo", fields: [padreId], references: [id])
+  hijos           dependencia[] @relation("dep_padre_hijo")
+
+  buenasPracticas buena_practica[]
+
+  @@index([padreId])
+  @@unique([padreId, nombre])
+}
+
+model eje_institucional {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buenaPracticaEjes buena_practica_eje[]
+}
+
+model criterio_orientador {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buenaPracticaCriterios buena_practica_criterio_orientador[]
+}
+
+model criterio_autoevaluacion {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique
+  descripcion String   @db.VarChar(255)
+  orden       Int
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([orden])
+}
+
+model criterio_par {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model buena_practica {
+  id            Int       @id @default(autoincrement())
+  titulo        String    @db.VarChar(200)
+
+  // Origen: exactamente uno debe estar definido (validacion XOR en backend)
+  plantelId     Int?
+  dependenciaId Int?
+
+  estadoFlujo   String    @db.VarChar(30) @default("documentacion") // documentacion, autoevaluacion, evaluacion_externa, validacion_institucional, consolidada
+  activo        Boolean   @default(true)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  plantel       plantel?     @relation(fields: [plantelId], references: [id])
+  dependencia   dependencia? @relation(fields: [dependenciaId], references: [id])
+
+  ejes          buena_practica_eje[]
+  criterios     buena_practica_criterio_orientador[]
+
+  @@index([plantelId])
+  @@index([dependenciaId])
+  @@index([estadoFlujo])
+}
+
+model buena_practica_eje {
+  buenaPracticaId Int
+  ejeId           Int
+
+  buena_practica  buena_practica   @relation(fields: [buenaPracticaId], references: [id], onDelete: Cascade)
+  eje_institucional eje_institucional @relation(fields: [ejeId], references: [id], onDelete: Cascade)
+
+  @@id([buenaPracticaId, ejeId])
+  @@index([ejeId])
+}
+
+model buena_practica_criterio_orientador {
+  buenaPracticaId Int
+  criterioId      Int
+
+  buena_practica     buena_practica      @relation(fields: [buenaPracticaId], references: [id], onDelete: Cascade)
+  criterio_orientador criterio_orientador @relation(fields: [criterioId], references: [id], onDelete: Cascade)
+
+  @@id([buenaPracticaId, criterioId])
+  @@index([criterioId])
+}
