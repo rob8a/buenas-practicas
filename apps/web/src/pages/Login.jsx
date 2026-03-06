@@ -46,6 +46,7 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
+        <h1 className="text-2xl font-bold text-slate-900">Sistema de Buenas Prácticas</h1>
         <h1>Sistema de Buenas Prácticas</h1>
         <p>Inicia sesión para continuar</p>
 
