@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   ClipboardList,
-  FileText,
+  ClipboardPlus,
   CheckSquare,
   Users,
   X,
@@ -15,14 +15,14 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
+    label: "Crear buena práctica",
+    to: "/app/crear",
+    icon: ClipboardPlus,
+    },
+  {
     label: "Listado de buenas prácticas",
     to: "/app/listado",
     icon: ClipboardList,
-  },
-  {
-    label: "Ficha",
-    to: "/app/ficha",
-    icon: FileText,
   },
   {
     label: "Autoevaluación",

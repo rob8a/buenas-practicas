@@ -60,6 +60,15 @@ export default function AppRouter() {
         }
       />
 
+      <Route
+        path="/app/crear"
+        element={
+            <ProtectedRoute>
+            <PlaceholderPage title="Crear buena práctica" />
+            </ProtectedRoute>
+        }
+    />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
