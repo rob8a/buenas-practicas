@@ -1,7 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
-  // Añade esta línea para ayudar a Node a encontrar el motor
+  provider   = "prisma-client-js"
+  output     = "../src/generated/prisma"
   engineType = "library"
 }
 
@@ -10,96 +9,43 @@ datasource db {
 }
 
 model user {
-  id                   Int       @id @default(autoincrement())
-
-  numeroTrabajador     String?   @db.VarChar(20) @unique
-  usuario              String    @db.VarChar(50) @unique
-  email                String    @db.VarChar(150) @unique
-
-  nombre               String    @db.VarChar(80)
-  apellidoPaterno      String    @db.VarChar(80)
-  apellidoMaterno      String?   @db.VarChar(80)
-
-  passwordHash         String?   @db.VarChar(255)
-  usaAuthInstitucional Boolean   @default(false)
-
-  activo               Boolean   @default(true)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-
-  roles                user_rol[]
+  id                                                     Int                          @id @default(autoincrement())
+  numeroTrabajador                                       String?                      @unique @db.VarChar(20)
+  usuario                                                String                       @unique @db.VarChar(50)
+  email                                                  String                       @unique @db.VarChar(150)
+  nombre                                                 String                       @db.VarChar(80)
+  apellidoPaterno                                        String                       @db.VarChar(80)
+  apellidoMaterno                                        String?                      @db.VarChar(80)
+  passwordHash                                           String?                      @db.VarChar(255)
+  usaAuthInstitucional                                   Boolean                      @default(false)
+  activo                                                 Boolean                      @default(true)
+  createdAt                                              DateTime                     @default(now())
+  updatedAt                                              DateTime                     @updatedAt
+  buena_practica_buena_practica_actualizado_por_idTouser buena_practica[]             @relation("buena_practica_actualizado_por_idTouser")
+  buena_practica_buena_practica_creado_por_idTouser      buena_practica[]             @relation("buena_practica_creado_por_idTouser")
+  buena_practica_historial                               buena_practica_historial[]
+  buena_practica_responsable                             buena_practica_responsable[]
+  roles                                                  user_rol[]
 }
 
 model rol {
-  id        Int      @id @default(autoincrement())
-  clave     String   @unique // Ej: "ADMIN", "CAPTURISTA", "EVALUADOR_PAR", "VALIDADOR_INST"
+  id        Int        @id @default(autoincrement())
+  clave     String     @unique
   nombre    String
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  activo    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   usuarios  user_rol[]
 }
 
 model user_rol {
   userId Int
   rolId  Int
-
-  user   user @relation(fields: [userId], references: [id], onDelete: Cascade)
   rol    rol  @relation(fields: [rolId], references: [id], onDelete: Cascade)
+  user   user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, rolId])
-}
-
-model delegacion {
-  id        Int      @id @default(autoincrement())
-  nombre    String   @unique
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  planteles plantel[]
-}
-
-model plantel {
-  id           Int        @id @default(autoincrement())
-  nombre       String     @unique
-  delegacionId Int
-  activo       Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  delegacion   delegacion @relation(fields: [delegacionId], references: [id])
-
-  buenasPracticas buena_practica[]
-}
-
-model dependencia {
-  id              Int           @id @default(autoincrement())
-  idInstitucional String        @db.VarChar(10) @unique
-  nombre          String
-  padreId         Int?
-  activo          Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  padre           dependencia?  @relation("dep_padre_hijo", fields: [padreId], references: [id])
-  hijos           dependencia[] @relation("dep_padre_hijo")
-
-  buenasPracticas buena_practica[]
-
-  @@index([padreId])
-  @@unique([padreId, nombre])
-}
-
-model eje_institucional {
-  id        Int      @id @default(autoincrement())
-  nombre    String   @unique
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  buenaPracticaEjes buena_practica_eje[]
+  @@index([rolId], map: "user_rol_rolId_fkey")
 }
 
 model criterio_orientador {
@@ -108,20 +54,16 @@ model criterio_orientador {
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  buenaPracticaCriterios buena_practica_criterio_orientador[]
 }
 
 model criterio_autoevaluacion {
   id          Int      @id @default(autoincrement())
   nombre      String   @unique
   descripcion String   @db.VarChar(255)
-  orden       Int
+  orden       Int      @unique
   activo      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@unique([orden])
 }
 
 model criterio_par {
@@ -133,48 +75,469 @@ model criterio_par {
 }
 
 model buena_practica {
-  id            Int       @id @default(autoincrement())
-  titulo        String    @db.VarChar(200)
+  id                                           Int                                        @id @default(autoincrement()) @db.UnsignedInt
+  titulo                                       String                                     @db.VarChar(255)
+  unidad_organizacional_id                     Int                                        @db.UnsignedInt
+  descripcion_breve                            String                                     @db.Text
+  tipo_registro                                buena_practica_tipo_registro
+  estatus_id                                   Int                                        @db.UnsignedInt
+  activo                                       Boolean                                    @default(true)
+  bloqueada_edicion                            Boolean                                    @default(false)
+  creado_por_id                                Int
+  actualizado_por_id                           Int?
+  createdAt                                    DateTime                                   @default(now())
+  updatedAt                                    DateTime                                   @default(now()) @updatedAt
+  user_buena_practica_actualizado_por_idTouser user?                                      @relation("buena_practica_actualizado_por_idTouser", fields: [actualizado_por_id], references: [id], map: "fk_buena_practica_actualizado_por")
+  user_buena_practica_creado_por_idTouser      user                                       @relation("buena_practica_creado_por_idTouser", fields: [creado_por_id], references: [id], map: "fk_buena_practica_creado_por")
+  buena_practica_estatus                       buena_practica_estatus                     @relation(fields: [estatus_id], references: [id], map: "fk_buena_practica_estatus")
+  unidad_organizacional                        unidad_organizacional                      @relation(fields: [unidad_organizacional_id], references: [id], map: "fk_buena_practica_unidad_organizacional")
+  buena_practica_actor_involucrado             buena_practica_actor_involucrado[]
+  buena_practica_alineacion                    buena_practica_alineacion[]
+  buena_practica_conclusion                    buena_practica_conclusion?
+  buena_practica_contexto_proposito            buena_practica_contexto_proposito?
+  buena_practica_datos_generales               buena_practica_datos_generales?
+  buena_practica_evaluacion_indicadores        buena_practica_evaluacion_indicadores?
+  buena_practica_fase                          buena_practica_fase[]
+  buena_practica_foda                          buena_practica_foda?
+  buena_practica_fundamentacion                buena_practica_fundamentacion?
+  buena_practica_historial                     buena_practica_historial[]
+  buena_practica_impacto_sostenibilidad        buena_practica_impacto_sostenibilidad?
+  buena_practica_indicador                     buena_practica_indicador[]
+  buena_practica_linea_tiempo                  buena_practica_linea_tiempo[]
+  buena_practica_metodologia                   buena_practica_metodologia?
+  buena_practica_modelo_educativo_elemento     buena_practica_modelo_educativo_elemento[]
+  buena_practica_ods                           buena_practica_ods[]
+  buena_practica_participacion_colaboracion    buena_practica_participacion_colaboracion?
+  buena_practica_plan_mexico_sector            buena_practica_plan_mexico_sector[]
+  buena_practica_responsable                   buena_practica_responsable[]
+  buena_practica_testimonio                    buena_practica_testimonio[]
+  buena_practica_unidad_participante           buena_practica_unidad_participante[]
 
-  // Origen: exactamente uno debe estar definido (validacion XOR en backend)
-  plantelId     Int?
-  dependenciaId Int?
-
-  estadoFlujo   String    @db.VarChar(30) @default("documentacion") // documentacion, autoevaluacion, evaluacion_externa, validacion_institucional, consolidada
-  activo        Boolean   @default(true)
-
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  plantel       plantel?     @relation(fields: [plantelId], references: [id])
-  dependencia   dependencia? @relation(fields: [dependenciaId], references: [id])
-
-  ejes          buena_practica_eje[]
-  criterios     buena_practica_criterio_orientador[]
-
-  @@index([plantelId])
-  @@index([dependenciaId])
-  @@index([estadoFlujo])
+  @@index([activo], map: "idx_buena_practica_activo")
+  @@index([actualizado_por_id], map: "idx_buena_practica_actualizado_por_id")
+  @@index([creado_por_id], map: "idx_buena_practica_creado_por_id")
+  @@index([estatus_id], map: "idx_buena_practica_estatus_id")
+  @@index([tipo_registro], map: "idx_buena_practica_tipo_registro")
+  @@index([titulo], map: "idx_buena_practica_titulo")
+  @@index([unidad_organizacional_id], map: "idx_buena_practica_unidad_organizacional_id")
 }
 
-model buena_practica_eje {
-  buenaPracticaId Int
-  ejeId           Int
+model buena_practica_actor_involucrado {
+  id                       Int                    @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id        Int                    @db.UnsignedInt
+  nombre                   String                 @db.VarChar(150)
+  rol                      String                 @db.VarChar(150)
+  unidad_organizacional_id Int?                   @db.UnsignedInt
+  orden                    Int                    @default(1) @db.UnsignedSmallInt
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @default(now())
+  buena_practica           buena_practica         @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_actor_involucrado_buena_practica")
+  unidad_organizacional    unidad_organizacional? @relation(fields: [unidad_organizacional_id], references: [id], map: "fk_buena_practica_actor_involucrado_unidad")
 
-  buena_practica  buena_practica   @relation(fields: [buenaPracticaId], references: [id], onDelete: Cascade)
-  eje_institucional eje_institucional @relation(fields: [ejeId], references: [id], onDelete: Cascade)
-
-  @@id([buenaPracticaId, ejeId])
-  @@index([ejeId])
+  @@index([buena_practica_id], map: "fk_buena_practica_actor_involucrado_buena_practica")
+  @@index([unidad_organizacional_id], map: "fk_buena_practica_actor_involucrado_unidad")
 }
 
-model buena_practica_criterio_orientador {
-  buenaPracticaId Int
-  criterioId      Int
+model buena_practica_alineacion {
+  id                     Int                 @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id      Int                 @db.UnsignedInt
+  catalogo_alineacion_id Int                 @db.UnsignedInt
+  createdAt              DateTime            @default(now())
+  buena_practica         buena_practica      @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_alineacion_buena_practica")
+  catalogo_alineacion    catalogo_alineacion @relation(fields: [catalogo_alineacion_id], references: [id], map: "fk_buena_practica_alineacion_catalogo")
 
-  buena_practica     buena_practica      @relation(fields: [buenaPracticaId], references: [id], onDelete: Cascade)
-  criterio_orientador criterio_orientador @relation(fields: [criterioId], references: [id], onDelete: Cascade)
+  @@unique([buena_practica_id, catalogo_alineacion_id], map: "uq_buena_practica_alineacion_unica")
+  @@index([buena_practica_id], map: "idx_buena_practica_alineacion_buena_practica_id")
+  @@index([catalogo_alineacion_id], map: "idx_buena_practica_alineacion_catalogo_alineacion_id")
+}
 
-  @@id([buenaPracticaId, criterioId])
-  @@index([criterioId])
+model buena_practica_conclusion {
+  id                         Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id          Int            @unique(map: "uq_bp_conclusion_buena_practica") @db.UnsignedInt
+  principales_aprendizajes   String?        @db.Text
+  recomendaciones_propuestas String?        @db.Text
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @default(now())
+  buena_practica             buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_bp_conclusion_buena_practica")
+}
+
+model buena_practica_contexto_proposito {
+  id                     Int                                               @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id      Int                                               @unique(map: "uq_buena_practica_contexto_proposito_buena_practica") @db.UnsignedInt
+  entorno                String                                            @db.Text
+  necesidad_problematica String                                            @db.Text
+  vinculacion_metas      String?                                           @db.Text
+  estado_practica        buena_practica_contexto_proposito_estado_practica
+  proposito_general      String                                            @db.Text
+  objetivo_central       String                                            @db.Text
+  poblacion_beneficiaria String?                                           @db.Text
+  condiciones_origen     String                                            @db.Text
+  createdAt              DateTime                                          @default(now())
+  updatedAt              DateTime                                          @default(now())
+  buena_practica         buena_practica                                    @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_contexto_proposito_buena_practica")
+}
+
+model buena_practica_datos_generales {
+  id                     Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id      Int            @unique(map: "uq_buena_practica_datos_generales_buena_practica") @db.UnsignedInt
+  subtitulo_lema         String?        @db.VarChar(255)
+  periodo_implementacion String         @db.VarChar(150)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @default(now())
+  buena_practica         buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_datos_generales_buena_practica")
+}
+
+model buena_practica_estatus {
+  id                                                                                            Int                        @id @default(autoincrement()) @db.UnsignedInt
+  clave                                                                                         String                     @unique(map: "uq_buena_practica_estatus_clave") @db.VarChar(100)
+  nombre                                                                                        String                     @db.VarChar(150)
+  descripcion                                                                                   String?                    @db.VarChar(255)
+  orden                                                                                         Int                        @unique(map: "uq_buena_practica_estatus_orden") @db.UnsignedTinyInt
+  permite_edicion                                                                               Boolean                    @default(true)
+  activo                                                                                        Boolean                    @default(true)
+  created_at                                                                                    DateTime                   @default(now()) @db.Timestamp(0)
+  updated_at                                                                                    DateTime                   @default(now()) @db.Timestamp(0)
+  buena_practica                                                                                buena_practica[]
+  buena_practica_historial_buena_practica_historial_estatus_anterior_idTobuena_practica_estatus buena_practica_historial[] @relation("buena_practica_historial_estatus_anterior_idTobuena_practica_estatus")
+  buena_practica_historial_buena_practica_historial_estatus_nuevo_idTobuena_practica_estatus    buena_practica_historial[] @relation("buena_practica_historial_estatus_nuevo_idTobuena_practica_estatus")
+
+  @@index([activo], map: "idx_buena_practica_estatus_activo")
+}
+
+model buena_practica_evaluacion_indicadores {
+  id                      Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id       Int            @unique(map: "uq_bp_evaluacion_indicadores_buena_practica") @db.UnsignedInt
+  instrumentos_evaluacion String?        @db.Text
+  logros_clave            String?        @db.Text
+  hallazgos_identificados String?        @db.Text
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @default(now())
+  buena_practica          buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_bp_evaluacion_indicadores_buena_practica")
+}
+
+model buena_practica_fase {
+  id                            Int                             @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id             Int                             @db.UnsignedInt
+  numero_fase                   Int                             @db.UnsignedTinyInt
+  nombre_fase                   String                          @db.VarChar(150)
+  descripcion                   String                          @db.Text
+  duracion                      String                          @db.VarChar(150)
+  sin_informacion               Boolean                         @default(false)
+  createdAt                     DateTime                        @default(now())
+  updatedAt                     DateTime                        @default(now())
+  buena_practica                buena_practica                  @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_fase_buena_practica")
+  buena_practica_fase_evidencia buena_practica_fase_evidencia[]
+
+  @@unique([buena_practica_id, numero_fase], map: "uq_buena_practica_fase_unica")
+}
+
+model buena_practica_fase_evidencia {
+  id                     Int                 @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_fase_id Int                 @db.UnsignedInt
+  nombre_original        String              @db.VarChar(255)
+  nombre_archivo         String              @db.VarChar(255)
+  ruta_archivo           String              @db.VarChar(500)
+  mime_type              String?             @db.VarChar(100)
+  tamano_bytes           BigInt?             @db.UnsignedBigInt
+  createdAt              DateTime            @default(now())
+  buena_practica_fase    buena_practica_fase @relation(fields: [buena_practica_fase_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_fase_evidencia_fase")
+
+  @@index([buena_practica_fase_id], map: "fk_buena_practica_fase_evidencia_fase")
+}
+
+model buena_practica_foda {
+  id                    Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id     Int            @unique(map: "uq_buena_practica_foda_buena_practica") @db.UnsignedInt
+  fortalezas            String?        @db.Text
+  oportunidades         String?        @db.Text
+  debilidades           String?        @db.Text
+  amenazas              String?        @db.Text
+  estrategias_derivadas String?        @db.Text
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @default(now())
+  buena_practica        buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_foda_buena_practica")
+}
+
+model buena_practica_fundamentacion {
+  id                           Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id            Int            @unique(map: "uq_buena_practica_fundamentacion_buena_practica") @db.UnsignedInt
+  vinculacion_modelo_educativo String?        @db.Text
+  fundamentacion_teorica       String?        @db.Text
+  politica_institucional       String?        @db.Text
+  createdAt                    DateTime       @default(now())
+  updatedAt                    DateTime       @default(now())
+  buena_practica               buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_fundamentacion_buena_practica")
+}
+
+model buena_practica_historial {
+  id                                                                                          Int                     @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id                                                                           Int                     @db.UnsignedInt
+  estatus_anterior_id                                                                         Int?                    @db.UnsignedInt
+  estatus_nuevo_id                                                                            Int                     @db.UnsignedInt
+  comentario                                                                                  String?                 @db.Text
+  cambiado_por_id                                                                             Int
+  createdAt                                                                                   DateTime                @default(now())
+  buena_practica                                                                              buena_practica          @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_historial_buena_practica")
+  user                                                                                        user                    @relation(fields: [cambiado_por_id], references: [id], map: "fk_buena_practica_historial_cambiado_por")
+  buena_practica_estatus_buena_practica_historial_estatus_anterior_idTobuena_practica_estatus buena_practica_estatus? @relation("buena_practica_historial_estatus_anterior_idTobuena_practica_estatus", fields: [estatus_anterior_id], references: [id], map: "fk_buena_practica_historial_estatus_anterior")
+  buena_practica_estatus_buena_practica_historial_estatus_nuevo_idTobuena_practica_estatus    buena_practica_estatus  @relation("buena_practica_historial_estatus_nuevo_idTobuena_practica_estatus", fields: [estatus_nuevo_id], references: [id], map: "fk_buena_practica_historial_estatus_nuevo")
+
+  @@index([buena_practica_id], map: "idx_buena_practica_historial_buena_practica_id")
+  @@index([cambiado_por_id], map: "idx_buena_practica_historial_cambiado_por_id")
+  @@index([createdAt], map: "idx_buena_practica_historial_createdAt")
+  @@index([estatus_anterior_id], map: "idx_buena_practica_historial_estatus_anterior_id")
+  @@index([estatus_nuevo_id], map: "idx_buena_practica_historial_estatus_nuevo_id")
+}
+
+model buena_practica_impacto_sostenibilidad {
+  id                             Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id              Int            @unique(map: "uq_bp_impacto_sostenibilidad_buena_practica") @db.UnsignedInt
+  sistematizacion_hallazgos      String?        @db.Text
+  instancias_recomendaciones     String?        @db.Text
+  resultados_inmediatos          String?        @db.Text
+  efectos_mediano_plazo          String?        @db.Text
+  vinculacion_pide_seaes_ods     String?        @db.Text
+  condiciones_permanencia        String?        @db.Text
+  aspectos_replicabilidad        String?        @db.Text
+  motor_cambio_mejora_continua   String?        @db.Text
+  acciones_estrategias_derivadas String?        @db.Text
+  createdAt                      DateTime       @default(now())
+  updatedAt                      DateTime       @default(now())
+  buena_practica                 buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_bp_impacto_sostenibilidad_buena_practica")
+}
+
+model buena_practica_indicador {
+  id                Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id Int            @db.UnsignedInt
+  nombre            String         @db.VarChar(255)
+  indicador         String         @db.VarChar(255)
+  unidad_medida     String?        @db.VarChar(100)
+  meta_esperada     String?        @db.VarChar(255)
+  descripcion_breve String?        @db.Text
+  periodo           String?        @db.VarChar(150)
+  orden             Int            @default(1) @db.UnsignedSmallInt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now())
+  buena_practica    buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_bp_indicador_buena_practica")
+
+  @@index([buena_practica_id], map: "idx_bp_indicador_buena_practica_id")
+  @@index([orden], map: "idx_bp_indicador_orden")
+}
+
+model buena_practica_linea_tiempo {
+  id                Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id Int            @db.UnsignedInt
+  fecha             DateTime       @db.Date
+  nombre            String         @db.VarChar(255)
+  descripcion       String?        @db.Text
+  orden             Int            @default(1) @db.UnsignedSmallInt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now())
+  buena_practica    buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_linea_tiempo_buena_practica")
+
+  @@index([buena_practica_id], map: "idx_buena_practica_linea_tiempo_buena_practica_id")
+  @@index([fecha], map: "idx_buena_practica_linea_tiempo_fecha")
+  @@index([orden], map: "idx_buena_practica_linea_tiempo_orden")
+}
+
+model buena_practica_metodologia {
+  id                  Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id   Int            @unique(map: "uq_buena_practica_metodologia_buena_practica") @db.UnsignedInt
+  descripcion_general String         @db.Text
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @default(now())
+  buena_practica      buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_metodologia_buena_practica")
+}
+
+model buena_practica_modelo_educativo_elemento {
+  id                                    Int                                @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id                     Int                                @db.UnsignedInt
+  catalogo_modelo_educativo_elemento_id Int                                @db.UnsignedInt
+  createdAt                             DateTime                           @default(now())
+  buena_practica                        buena_practica                     @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_bp_modelo_elemento_buena_practica")
+  catalogo_modelo_educativo_elemento    catalogo_modelo_educativo_elemento @relation(fields: [catalogo_modelo_educativo_elemento_id], references: [id], map: "fk_bp_modelo_elemento_catalogo")
+
+  @@unique([buena_practica_id, catalogo_modelo_educativo_elemento_id], map: "uq_bp_modelo_elemento_unico")
+  @@index([catalogo_modelo_educativo_elemento_id], map: "fk_bp_modelo_elemento_catalogo")
+}
+
+model buena_practica_ods {
+  id                Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id Int            @db.UnsignedInt
+  catalogo_ods_id   Int            @db.UnsignedInt
+  createdAt         DateTime       @default(now())
+  buena_practica    buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_bp_ods_buena_practica")
+  catalogo_ods      catalogo_ods   @relation(fields: [catalogo_ods_id], references: [id], map: "fk_bp_ods_catalogo")
+
+  @@unique([buena_practica_id, catalogo_ods_id], map: "uq_bp_ods_unico")
+  @@index([catalogo_ods_id], map: "fk_bp_ods_catalogo")
+}
+
+model buena_practica_participacion_colaboracion {
+  id                          Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id           Int            @unique(map: "uq_buena_practica_participacion_colaboracion_buena_practica") @db.UnsignedInt
+  descripcion_coordinacion    String         @db.Text
+  aportes_interdisciplinarios String?        @db.Text
+  createdAt                   DateTime       @default(now())
+  updatedAt                   DateTime       @default(now())
+  buena_practica              buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_participacion_colaboracion_buena_practica")
+}
+
+model buena_practica_plan_mexico_sector {
+  id                             Int                         @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id              Int                         @db.UnsignedInt
+  catalogo_plan_mexico_sector_id Int                         @db.UnsignedInt
+  createdAt                      DateTime                    @default(now())
+  buena_practica                 buena_practica              @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_bp_plan_mexico_buena_practica")
+  catalogo_plan_mexico_sector    catalogo_plan_mexico_sector @relation(fields: [catalogo_plan_mexico_sector_id], references: [id], map: "fk_bp_plan_mexico_catalogo")
+
+  @@unique([buena_practica_id, catalogo_plan_mexico_sector_id], map: "uq_bp_plan_mexico_unico")
+  @@index([catalogo_plan_mexico_sector_id], map: "fk_bp_plan_mexico_catalogo")
+}
+
+model buena_practica_responsable {
+  id                Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id Int            @db.UnsignedInt
+  user_id           Int?
+  nombre            String         @db.VarChar(150)
+  cargo             String?        @db.VarChar(150)
+  correo            String?        @db.VarChar(150)
+  telefono          String?        @db.VarChar(30)
+  orden             Int            @default(1) @db.UnsignedTinyInt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now())
+  buena_practica    buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_responsable_buena_practica")
+  user              user?          @relation(fields: [user_id], references: [id], map: "fk_buena_practica_responsable_user")
+
+  @@index([buena_practica_id], map: "idx_buena_practica_responsable_buena_practica_id")
+  @@index([orden], map: "idx_buena_practica_responsable_orden")
+  @@index([user_id], map: "idx_buena_practica_responsable_user_id")
+}
+
+model buena_practica_testimonio {
+  id                Int            @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id Int            @db.UnsignedInt
+  testimonio        String         @db.Text
+  cargo             String?        @db.VarChar(150)
+  orden             Int            @default(1) @db.UnsignedSmallInt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now())
+  buena_practica    buena_practica @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_bp_testimonio_buena_practica")
+
+  @@index([buena_practica_id], map: "idx_bp_testimonio_buena_practica_id")
+  @@index([orden], map: "idx_bp_testimonio_orden")
+}
+
+model buena_practica_unidad_participante {
+  id                       Int                   @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id        Int                   @db.UnsignedInt
+  unidad_organizacional_id Int                   @db.UnsignedInt
+  createdAt                DateTime              @default(now())
+  buena_practica           buena_practica        @relation(fields: [buena_practica_id], references: [id], onDelete: Cascade, map: "fk_buena_practica_unidad_participante_buena_practica")
+  unidad_organizacional    unidad_organizacional @relation(fields: [unidad_organizacional_id], references: [id], map: "fk_buena_practica_unidad_participante_unidad")
+
+  @@unique([buena_practica_id, unidad_organizacional_id], map: "uq_buena_practica_unidad_participante_unica")
+  @@index([buena_practica_id], map: "idx_buena_practica_unidad_participante_buena_practica_id")
+  @@index([unidad_organizacional_id], map: "idx_buena_practica_unidad_participante_unidad_organizacional_id")
+}
+
+model catalogo_alineacion {
+  id                        Int                         @id @default(autoincrement()) @db.UnsignedInt
+  marco                     catalogo_alineacion_marco
+  grupo                     catalogo_alineacion_grupo
+  valor                     String                      @db.VarChar(255)
+  orden                     Int                         @default(1) @db.UnsignedTinyInt
+  activo                    Boolean                     @default(true)
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @default(now())
+  buena_practica_alineacion buena_practica_alineacion[]
+
+  @@unique([marco, grupo, valor], map: "uq_catalogo_alineacion_unico")
+  @@index([activo], map: "idx_catalogo_alineacion_activo")
+  @@index([grupo], map: "idx_catalogo_alineacion_grupo")
+  @@index([marco], map: "idx_catalogo_alineacion_marco")
+  @@index([orden], map: "idx_catalogo_alineacion_orden")
+}
+
+model catalogo_modelo_educativo_elemento {
+  id                                       Int                                        @id @default(autoincrement()) @db.UnsignedInt
+  nombre                                   String                                     @unique(map: "uq_catalogo_modelo_educativo_elemento_nombre") @db.VarChar(255)
+  descripcion                              String?                                    @db.VarChar(500)
+  orden                                    Int                                        @default(1) @db.UnsignedSmallInt
+  activo                                   Boolean                                    @default(true)
+  createdAt                                DateTime                                   @default(now())
+  updatedAt                                DateTime                                   @default(now())
+  buena_practica_modelo_educativo_elemento buena_practica_modelo_educativo_elemento[]
+}
+
+model catalogo_ods {
+  id                 Int                  @id @default(autoincrement()) @db.UnsignedInt
+  numero             Int                  @unique(map: "uq_catalogo_ods_numero") @db.UnsignedTinyInt
+  nombre             String               @unique(map: "uq_catalogo_ods_nombre") @db.VarChar(255)
+  descripcion        String?              @db.VarChar(500)
+  orden              Int                  @default(1) @db.UnsignedSmallInt
+  activo             Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @default(now())
+  buena_practica_ods buena_practica_ods[]
+}
+
+model catalogo_plan_mexico_sector {
+  id                                Int                                 @id @default(autoincrement()) @db.UnsignedInt
+  nombre                            String                              @unique(map: "uq_catalogo_plan_mexico_sector_nombre") @db.VarChar(255)
+  descripcion                       String?                             @db.VarChar(500)
+  orden                             Int                                 @default(1) @db.UnsignedSmallInt
+  activo                            Boolean                             @default(true)
+  createdAt                         DateTime                            @default(now())
+  updatedAt                         DateTime                            @default(now())
+  buena_practica_plan_mexico_sector buena_practica_plan_mexico_sector[]
+}
+
+model unidad_organizacional {
+  id                                 Int                                  @id @default(autoincrement()) @db.UnsignedInt
+  nombre                             String                               @db.VarChar(255)
+  clave                              String?                              @db.VarChar(100)
+  id_institucional                   String?                              @db.VarChar(20)
+  tipo                               String                               @db.VarChar(100)
+  padre_id                           Int?                                 @db.UnsignedInt
+  nivel                              Int                                  @default(1) @db.UnsignedTinyInt
+  activo                             Boolean                              @default(true)
+  created_at                         DateTime                             @default(now()) @db.Timestamp(0)
+  updated_at                         DateTime                             @default(now()) @db.Timestamp(0)
+  buena_practica                     buena_practica[]
+  buena_practica_actor_involucrado   buena_practica_actor_involucrado[]
+  buena_practica_unidad_participante buena_practica_unidad_participante[]
+  unidad_organizacional              unidad_organizacional?               @relation("unidad_organizacionalTounidad_organizacional", fields: [padre_id], references: [id], map: "fk_unidad_organizacional_padre")
+  other_unidad_organizacional        unidad_organizacional[]              @relation("unidad_organizacionalTounidad_organizacional")
+
+  @@index([activo], map: "idx_unidad_organizacional_activo")
+  @@index([clave], map: "idx_unidad_organizacional_clave")
+  @@index([id_institucional], map: "idx_unidad_organizacional_id_institucional")
+  @@index([nombre], map: "idx_unidad_organizacional_nombre")
+  @@index([padre_id], map: "idx_unidad_organizacional_padre_id")
+  @@index([tipo], map: "idx_unidad_organizacional_tipo")
+}
+
+enum catalogo_alineacion_marco {
+  INSTITUCIONAL
+  ESTRATEGICO
+}
+
+enum catalogo_alineacion_grupo {
+  FUNCION_SUSTANTIVA
+  CRITERIO_SEAES
+  PROGRAMA_SECTORIAL
+  EJE_TRANSVERSAL
+}
+
+enum buena_practica_tipo_registro {
+  NUEVA
+  ADOPTADA
+  ADAPTADA
+}
+
+enum buena_practica_contexto_proposito_estado_practica {
+  VIGENTE
+  CONCLUIDA
+  EN_MEJORA
 }
