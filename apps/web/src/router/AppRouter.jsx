@@ -4,6 +4,10 @@ import Dashboard from "../pages/Dashboard";
 import PlaceholderPage from "../pages/PlaceholderPage";
 import ProtectedRoute from "./ProtectedRoute";
 import { isAuthenticated } from "../lib/auth";
+import CreateBuenaPractica from "../pages/CreateBuenaPractica";
+import FichaPage from "../pages/FichaPage";
+import FichaLayout from "../pages/ficha/FichaLayout";
+import DatosGeneralesPage from "../pages/ficha/DatosGeneralesPage";
 
 export default function AppRouter() {
   return (
@@ -34,13 +38,21 @@ export default function AppRouter() {
       />
 
       <Route
-        path="/app/ficha"
+        path="/app/ficha/:id"
         element={
           <ProtectedRoute>
-            <PlaceholderPage title="Ficha" />
+            <FichaLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<DatosGeneralesPage />} />
+
+        <Route
+          path="datos-generales"
+          element={<DatosGeneralesPage />}
+        />
+
+      </Route>
 
       <Route
         path="/app/autoevaluacion"
@@ -63,11 +75,11 @@ export default function AppRouter() {
       <Route
         path="/app/crear"
         element={
-            <ProtectedRoute>
-            <PlaceholderPage title="Crear buena práctica" />
-            </ProtectedRoute>
+          <ProtectedRoute>
+            <CreateBuenaPractica />
+          </ProtectedRoute>
         }
-    />
+      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
