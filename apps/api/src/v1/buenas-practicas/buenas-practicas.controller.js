@@ -13,3 +13,18 @@ export async function createBuenaPractica(req, res, next) {
     next(error);
   }
 }
+
+export async function getBuenaPracticaById(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.getBuenaPracticaById(id);
+
+    return res.json({
+      ok: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}

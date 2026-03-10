@@ -119,3 +119,26 @@ export async function createBuenaPractica(payload) {
 
   return result;
 }
+
+export async function getBuenaPracticaById(id) {
+  const buenaPracticaId = Number(id);
+
+  if (!buenaPracticaId || Number.isNaN(buenaPracticaId)) {
+    throw new HttpError(400, "El id de la buena práctica es inválido.");
+  }
+
+  const buenaPractica = await prisma.buena_practica.findUnique({
+    where: { id: buenaPracticaId },
+    include: {
+      buena_practica_datos_generales: true,
+      unidad_organizacional: true,
+      buena_practica_estatus: true,
+    },
+  });
+
+  if (!buenaPractica || !buenaPractica.activo) {
+    throw new HttpError(404, "La buena práctica no existe.");
+  }
+
+  return buenaPractica;
+}
