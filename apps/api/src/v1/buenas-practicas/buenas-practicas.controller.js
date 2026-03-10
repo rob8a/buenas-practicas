@@ -28,3 +28,19 @@ export async function getBuenaPracticaById(req, res, next) {
     next(error);
   }
 }
+
+export async function updateDatosGenerales(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateDatosGenerales(id, req.body);
+
+    return res.json({
+      ok: true,
+      message: "Datos generales actualizados correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}

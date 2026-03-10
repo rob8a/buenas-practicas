@@ -142,3 +142,120 @@ export async function getBuenaPracticaById(id) {
 
   return buenaPractica;
 }
+
+export async function updateDatosGenerales(id, payload) {
+  const buenaPracticaId = Number(id);
+
+  if (!buenaPracticaId || Number.isNaN(buenaPracticaId)) {
+    throw new HttpError(400, "El id de la buena práctica es inválido.");
+  }
+
+  const {
+    titulo,
+    unidad_organizacional_id,
+    descripcion_breve,
+    subtitulo_lema,
+    periodo_implementacion,
+    actualizado_por_id,
+  } = payload;
+
+  if (!titulo || !titulo.trim()) {
+    throw new HttpError(400, "El campo 'titulo' es obligatorio.");
+  }
+
+  if (!unidad_organizacional_id) {
+    throw new HttpError(400, "El campo 'unidad_organizacional_id' es obligatorio.");
+  }
+
+  if (!descripcion_breve || !descripcion_breve.trim()) {
+    throw new HttpError(400, "El campo 'descripcion_breve' es obligatorio.");
+  }
+
+  if (!periodo_implementacion || !periodo_implementacion.trim()) {
+    throw new HttpError(400, "El campo 'periodo_implementacion' es obligatorio.");
+  }
+
+  if (!actualizado_por_id) {
+    throw new HttpError(400, "El campo 'actualizado_por_id' es obligatorio.");
+  }
+
+  const buenaPractica = await prisma.buena_practica.findUnique({
+    where: { id: buenaPracticaId },
+    include: {
+      buena_practica_estatus: true,
+      buena_practica_datos_generales: true,
+    },
+  });
+
+  if (!buenaPractica || !buenaPractica.activo) {
+    throw new HttpError(404, "La buena práctica no existe.");
+  }
+
+  if (buenaPractica.bloqueada_edicion) {
+    throw new HttpError(409, "La buena práctica está bloqueada para edición.");
+  }
+
+  if (!buenaPractica.buena_practica_estatus?.permite_edicion) {
+    throw new HttpError(
+      409,
+      "La buena práctica no puede editarse en su estatus actual."
+    );
+  }
+
+  const unidad = await prisma.unidad_organizacional.findUnique({
+    where: { id: Number(unidad_organizacional_id) },
+  });
+
+  if (!unidad) {
+    throw new HttpError(404, "La unidad organizacional no existe.");
+  }
+
+  const usuario = await prisma.user.findUnique({
+    where: { id: Number(actualizado_por_id) },
+  });
+
+  if (!usuario) {
+    throw new HttpError(404, "El usuario actualizador no existe.");
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedBuenaPractica = await tx.buena_practica.update({
+      where: { id: buenaPracticaId },
+      data: {
+        titulo: titulo.trim(),
+        unidad_organizacional_id: Number(unidad_organizacional_id),
+        descripcion_breve: descripcion_breve.trim(),
+        actualizado_por_id: Number(actualizado_por_id),
+      },
+    });
+
+    let updatedDatosGenerales;
+
+    if (buenaPractica.buena_practica_datos_generales) {
+      updatedDatosGenerales = await tx.buena_practica_datos_generales.update({
+        where: {
+          buena_practica_id: buenaPracticaId,
+        },
+        data: {
+          subtitulo_lema: subtitulo_lema?.trim() || null,
+          periodo_implementacion: periodo_implementacion.trim(),
+        },
+      });
+    } else {
+      updatedDatosGenerales = await tx.buena_practica_datos_generales.create({
+        data: {
+          buena_practica_id: buenaPracticaId,
+          subtitulo_lema: subtitulo_lema?.trim() || null,
+          periodo_implementacion: periodo_implementacion.trim(),
+        },
+      });
+    }
+
+    return {
+      buena_practica: updatedBuenaPractica,
+      datos_generales: updatedDatosGenerales,
+    };
+  });
+
+  return result;
+}
