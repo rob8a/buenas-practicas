@@ -8,6 +8,7 @@ import CreateBuenaPractica from "../pages/CreateBuenaPractica";
 import FichaPage from "../pages/FichaPage";
 import FichaLayout from "../pages/ficha/FichaLayout";
 import DatosGeneralesPage from "../pages/ficha/DatosGeneralesPage";
+import ContextoPropositoPage from "../pages/ficha/ContextoPropositoPage";
 
 export default function AppRouter() {
   return (
@@ -50,6 +51,11 @@ export default function AppRouter() {
         <Route
           path="datos-generales"
           element={<DatosGeneralesPage />}
+        />
+
+        <Route
+          path="contexto"
+          element={<ContextoPropositoPage />}
         />
 
       </Route>

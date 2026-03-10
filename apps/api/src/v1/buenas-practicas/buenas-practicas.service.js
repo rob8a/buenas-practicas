@@ -133,6 +133,36 @@ export async function getBuenaPracticaById(id) {
       buena_practica_datos_generales: true,
       unidad_organizacional: true,
       buena_practica_estatus: true,
+      buena_practica_responsable: {
+        orderBy: { orden: "asc" },
+      },
+      buena_practica_alineacion: {
+        include: {
+          catalogo_alineacion: true,
+        },
+        orderBy: {
+          catalogo_alineacion: {
+            orden: "asc",
+          },
+        },
+      },
+      buena_practica_contexto_proposito: true,
+      buena_practica_unidad_participante: {
+        include: {
+          unidad_organizacional: true,
+        },
+        orderBy: {
+          unidad_organizacional: {
+            nombre: "asc",
+          },
+        },
+      },
+      buena_practica_linea_tiempo: {
+        orderBy: [
+          { fecha: "asc" },
+          { orden: "asc" },
+        ],
+      },
     },
   });
 
@@ -150,14 +180,16 @@ export async function updateDatosGenerales(id, payload) {
     throw new HttpError(400, "El id de la buena práctica es inválido.");
   }
 
-  const {
-    titulo,
-    unidad_organizacional_id,
-    descripcion_breve,
-    subtitulo_lema,
-    periodo_implementacion,
-    actualizado_por_id,
-  } = payload;
+    const {
+        titulo,
+        unidad_organizacional_id,
+        descripcion_breve,
+        subtitulo_lema,
+        periodo_implementacion,
+        actualizado_por_id,
+        responsables = [],
+        alineaciones = [],
+    } = payload;
 
   if (!titulo || !titulo.trim()) {
     throw new HttpError(400, "El campo 'titulo' es obligatorio.");
@@ -178,6 +210,33 @@ export async function updateDatosGenerales(id, payload) {
   if (!actualizado_por_id) {
     throw new HttpError(400, "El campo 'actualizado_por_id' es obligatorio.");
   }
+
+  if (!Array.isArray(responsables) || responsables.length === 0) {
+    throw new HttpError(
+        400,
+        "Debe capturarse al menos una persona responsable."
+    );
+    }
+
+    if (!Array.isArray(alineaciones)) {
+        throw new HttpError(400, "El campo 'alineaciones' debe ser un arreglo.");
+    }
+
+    if (alineaciones.length > 0) {
+    const totalCatalogos = await prisma.catalogo_alineacion.count({
+        where: {
+        id: { in: alineaciones.map((id) => Number(id)) },
+        activo: true,
+        },
+    });
+
+    if (totalCatalogos !== alineaciones.length) {
+        throw new HttpError(
+        400,
+        "Una o más alineaciones seleccionadas no son válidas."
+        );
+    }
+    }
 
   const buenaPractica = await prisma.buena_practica.findUnique({
     where: { id: buenaPracticaId },
@@ -218,42 +277,330 @@ export async function updateDatosGenerales(id, payload) {
     throw new HttpError(404, "El usuario actualizador no existe.");
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+
+    const result = await prisma.$transaction(async (tx) => {
     const updatedBuenaPractica = await tx.buena_practica.update({
-      where: { id: buenaPracticaId },
-      data: {
+        where: { id: buenaPracticaId },
+        data: {
         titulo: titulo.trim(),
         unidad_organizacional_id: Number(unidad_organizacional_id),
         descripcion_breve: descripcion_breve.trim(),
         actualizado_por_id: Number(actualizado_por_id),
-      },
+        },
     });
 
     let updatedDatosGenerales;
 
     if (buenaPractica.buena_practica_datos_generales) {
-      updatedDatosGenerales = await tx.buena_practica_datos_generales.update({
+        updatedDatosGenerales = await tx.buena_practica_datos_generales.update({
+        where: {
+            buena_practica_id: buenaPracticaId,
+        },
+        data: {
+            subtitulo_lema: subtitulo_lema?.trim() || null,
+            periodo_implementacion: periodo_implementacion.trim(),
+        },
+        });
+    } else {
+        updatedDatosGenerales = await tx.buena_practica_datos_generales.create({
+        data: {
+            buena_practica_id: buenaPracticaId,
+            subtitulo_lema: subtitulo_lema?.trim() || null,
+            periodo_implementacion: periodo_implementacion.trim(),
+        },
+        });
+    }
+
+    // Reemplazar responsables
+    await tx.buena_practica_responsable.deleteMany({
+        where: { buena_practica_id: buenaPracticaId },
+    });
+
+    if (responsables.length > 0) {
+        await tx.buena_practica_responsable.createMany({
+        data: responsables.map((item, index) => ({
+            buena_practica_id: buenaPracticaId,
+            user_id: null,
+            nombre: item.nombre?.trim() || "",
+            cargo: item.cargo?.trim() || null,
+            correo: item.correo?.trim() || null,
+            telefono: item.telefono?.trim() || null,
+            orden: index + 1,
+        })),
+        });
+    }
+
+    // Reemplazar alineaciones
+    await tx.buena_practica_alineacion.deleteMany({
+        where: { buena_practica_id: buenaPracticaId },
+    });
+
+    if (alineaciones.length > 0) {
+        await tx.buena_practica_alineacion.createMany({
+        data: alineaciones.map((catalogoId) => ({
+            buena_practica_id: buenaPracticaId,
+            catalogo_alineacion_id: Number(catalogoId),
+        })),
+        });
+    }
+
+    const responsablesActualizados = await tx.buena_practica_responsable.findMany({
+        where: { buena_practica_id: buenaPracticaId },
+        orderBy: { orden: "asc" },
+    });
+
+    const alineacionesActualizadas = await tx.buena_practica_alineacion.findMany({
+        where: { buena_practica_id: buenaPracticaId },
+        include: {
+        catalogo_alineacion: true,
+        },
+    });
+
+    return {
+        buena_practica: updatedBuenaPractica,
+        datos_generales: updatedDatosGenerales,
+        responsables: responsablesActualizados,
+        alineaciones: alineacionesActualizadas,
+    };
+    });
+
+  return result;
+}
+
+export async function updateContextoProposito(id, payload) {
+  const buenaPracticaId = Number(id);
+
+  if (!buenaPracticaId || Number.isNaN(buenaPracticaId)) {
+    throw new HttpError(400, "El id de la buena práctica es inválido.");
+  }
+
+  const {
+    entorno,
+    necesidad_problematica,
+    vinculacion_metas,
+    estado_practica,
+    proposito_general,
+    objetivo_central,
+    poblacion_beneficiaria,
+    condiciones_origen,
+    unidades_participantes = [],
+    linea_tiempo = [],
+  } = payload;
+
+  if (!entorno || !entorno.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'entorno' es obligatorio."
+    );
+  }
+
+  if (!necesidad_problematica || !necesidad_problematica.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'necesidad_problematica' es obligatorio."
+    );
+  }
+
+  if (!Array.isArray(unidades_participantes) || unidades_participantes.length === 0) {
+    throw new HttpError(
+      400,
+      "Debe seleccionar al menos una unidad participante."
+    );
+  }
+
+  if (!vinculacion_metas || !vinculacion_metas.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'vinculacion_metas' es obligatorio."
+    );
+  }
+
+  if (!estado_practica) {
+    throw new HttpError(
+      400,
+      "El campo 'estado_practica' es obligatorio."
+    );
+  }
+
+  if (!["VIGENTE", "CONCLUIDA", "EN_MEJORA"].includes(estado_practica)) {
+    throw new HttpError(
+      400,
+      "El campo 'estado_practica' debe ser VIGENTE, CONCLUIDA o EN_MEJORA."
+    );
+  }
+
+  if (!proposito_general || !proposito_general.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'proposito_general' es obligatorio."
+    );
+  }
+
+  if (!objetivo_central || !objetivo_central.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'objetivo_central' es obligatorio."
+    );
+  }
+
+  if (!poblacion_beneficiaria || !poblacion_beneficiaria.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'poblacion_beneficiaria' es obligatorio."
+    );
+  }
+
+  if (!condiciones_origen || !condiciones_origen.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'condiciones_origen' es obligatorio."
+    );
+  }
+
+  if (!Array.isArray(linea_tiempo)) {
+    throw new HttpError(
+      400,
+      "El campo 'linea_tiempo' debe ser un arreglo."
+    );
+  }
+
+  const buenaPractica = await prisma.buena_practica.findUnique({
+    where: { id: buenaPracticaId },
+    include: {
+      buena_practica_estatus: true,
+      buena_practica_contexto_proposito: true,
+    },
+  });
+
+  if (!buenaPractica || !buenaPractica.activo) {
+    throw new HttpError(404, "La buena práctica no existe.");
+  }
+
+  if (buenaPractica.bloqueada_edicion) {
+    throw new HttpError(409, "La buena práctica está bloqueada para edición.");
+  }
+
+  if (!buenaPractica.buena_practica_estatus?.permite_edicion) {
+    throw new HttpError(
+      409,
+      "La buena práctica no puede editarse en su estatus actual."
+    );
+  }
+
+  const idsUnidades = unidades_participantes.map((id) => Number(id));
+  const totalUnidades = await prisma.unidad_organizacional.count({
+    where: {
+      id: { in: idsUnidades },
+      activo: true,
+    },
+  });
+
+  if (totalUnidades !== idsUnidades.length) {
+    throw new HttpError(
+      400,
+      "Una o más unidades participantes no son válidas."
+    );
+  }
+
+  for (const item of linea_tiempo) {
+    if (!item.fecha || !item.nombre || !String(item.nombre).trim()) {
+      throw new HttpError(
+        400,
+        "Cada antecedente debe incluir al menos fecha y nombre."
+      );
+    }
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    let contextoProposito;
+
+    if (buenaPractica.buena_practica_contexto_proposito) {
+      contextoProposito = await tx.buena_practica_contexto_proposito.update({
         where: {
           buena_practica_id: buenaPracticaId,
         },
         data: {
-          subtitulo_lema: subtitulo_lema?.trim() || null,
-          periodo_implementacion: periodo_implementacion.trim(),
+          entorno: entorno.trim(),
+          necesidad_problematica: necesidad_problematica.trim(),
+          vinculacion_metas: vinculacion_metas.trim(),
+          estado_practica,
+          proposito_general: proposito_general.trim(),
+          objetivo_central: objetivo_central.trim(),
+          poblacion_beneficiaria: poblacion_beneficiaria.trim(),
+          condiciones_origen: condiciones_origen.trim(),
         },
       });
     } else {
-      updatedDatosGenerales = await tx.buena_practica_datos_generales.create({
+      contextoProposito = await tx.buena_practica_contexto_proposito.create({
         data: {
           buena_practica_id: buenaPracticaId,
-          subtitulo_lema: subtitulo_lema?.trim() || null,
-          periodo_implementacion: periodo_implementacion.trim(),
+          entorno: entorno.trim(),
+          necesidad_problematica: necesidad_problematica.trim(),
+          vinculacion_metas: vinculacion_metas.trim(),
+          estado_practica,
+          proposito_general: proposito_general.trim(),
+          objetivo_central: objetivo_central.trim(),
+          poblacion_beneficiaria: poblacion_beneficiaria.trim(),
+          condiciones_origen: condiciones_origen.trim(),
         },
       });
     }
 
+    await tx.buena_practica_unidad_participante.deleteMany({
+      where: { buena_practica_id: buenaPracticaId },
+    });
+
+    if (idsUnidades.length > 0) {
+      await tx.buena_practica_unidad_participante.createMany({
+        data: idsUnidades.map((unidadId) => ({
+          buena_practica_id: buenaPracticaId,
+          unidad_organizacional_id: unidadId,
+        })),
+      });
+    }
+
+    await tx.buena_practica_linea_tiempo.deleteMany({
+      where: { buena_practica_id: buenaPracticaId },
+    });
+
+    if (linea_tiempo.length > 0) {
+      await tx.buena_practica_linea_tiempo.createMany({
+        data: linea_tiempo.map((item, index) => ({
+          buena_practica_id: buenaPracticaId,
+          fecha: new Date(item.fecha),
+          nombre: String(item.nombre).trim(),
+          descripcion: item.descripcion?.trim() || null,
+          orden: index + 1,
+        })),
+      });
+    }
+
+    const unidadesActualizadas =
+      await tx.buena_practica_unidad_participante.findMany({
+        where: { buena_practica_id: buenaPracticaId },
+        include: {
+          unidad_organizacional: true,
+        },
+        orderBy: {
+          unidad_organizacional: {
+            nombre: "asc",
+          },
+        },
+      });
+
+    const lineaTiempoActualizada =
+      await tx.buena_practica_linea_tiempo.findMany({
+        where: { buena_practica_id: buenaPracticaId },
+        orderBy: [
+          { fecha: "asc" },
+          { orden: "asc" },
+        ],
+      });
+
     return {
-      buena_practica: updatedBuenaPractica,
-      datos_generales: updatedDatosGenerales,
+      contexto_proposito: contextoProposito,
+      unidades_participantes: unidadesActualizadas,
+      linea_tiempo: lineaTiempoActualizada,
     };
   });
 

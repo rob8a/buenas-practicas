@@ -44,3 +44,22 @@ export async function updateDatosGenerales(req, res, next) {
     next(error);
   }
 }
+
+export async function updateContextoProposito(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateContextoProposito(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "Contexto y propósito actualizados correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
