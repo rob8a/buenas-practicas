@@ -63,3 +63,54 @@ export async function updateContextoProposito(req, res, next) {
     next(error);
   }
 }
+
+export async function updateFundamentacion(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateFundamentacion(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "Fundamentación actualizada correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateMetodologia(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateMetodologia(id, req.body);
+
+    return res.json({
+      ok: true,
+      message: "Metodología y desarrollo actualizados correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateFoda(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateFoda(id, req.body);
+
+    return res.json({
+      ok: true,
+      message: "Análisis FODA actualizado correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}

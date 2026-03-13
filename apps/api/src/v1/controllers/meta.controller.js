@@ -51,3 +51,42 @@ export async function getAlineaciones(_req, res, next) {
     next(error);
   }
 }
+
+export async function getModeloEducativoElementos(_req, res, next) {
+  try {
+    const data = await prisma.catalogo_modelo_educativo_elemento.findMany({
+      where: { activo: true },
+      orderBy: { orden: "asc" },
+    });
+
+    return res.json({ ok: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getPlanMexicoSectores(_req, res, next) {
+  try {
+    const data = await prisma.catalogo_plan_mexico_sector.findMany({
+      where: { activo: true },
+      orderBy: { orden: "asc" },
+    });
+
+    return res.json({ ok: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getOds(_req, res, next) {
+  try {
+    const data = await prisma.catalogo_ods.findMany({
+      where: { activo: true },
+      orderBy: { numero: "asc" },
+    });
+
+    return res.json({ ok: true, data });
+  } catch (error) {
+    next(error);
+  }
+}

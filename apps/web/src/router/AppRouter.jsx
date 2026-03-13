@@ -9,6 +9,9 @@ import FichaPage from "../pages/FichaPage";
 import FichaLayout from "../pages/ficha/FichaLayout";
 import DatosGeneralesPage from "../pages/ficha/DatosGeneralesPage";
 import ContextoPropositoPage from "../pages/ficha/ContextoPropositoPage";
+import FundamentacionPage from "../pages/ficha/FundamentacionPage";
+import MetodologiaPage from "../pages/ficha/MetodologiaPage";
+import FodaPage from "../pages/ficha/FodaPage";
 
 export default function AppRouter() {
   return (
@@ -56,6 +59,21 @@ export default function AppRouter() {
         <Route
           path="contexto"
           element={<ContextoPropositoPage />}
+        />
+
+        <Route
+          path="fundamentacion"
+          element={<FundamentacionPage />}
+        />
+
+        <Route
+          path="metodologia"
+          element={<MetodologiaPage />}
+        />
+
+        <Route
+          path="foda"
+          element={<FodaPage />}
         />
 
       </Route>
