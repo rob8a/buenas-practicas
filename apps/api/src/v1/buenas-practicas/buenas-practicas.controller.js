@@ -114,3 +114,90 @@ export async function updateFoda(req, res, next) {
     next(error);
   }
 }
+
+export async function updateParticipacion(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateParticipacion(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "Participación y colaboración actualizadas correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateEvaluacion(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateEvaluacion(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "Evaluación e indicadores actualizados correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateImpacto(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateImpacto(id, req.body);
+
+    return res.json({
+      ok: true,
+      message: "Impacto y sostenibilidad actualizados correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateConclusiones(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateConclusiones(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "Conclusiones actualizadas correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getBuenasPracticas(req, res, next) {
+  try {
+    const result = await buenasPracticasService.getBuenasPracticas(req.query);
+
+    return res.json({
+      ok: true,
+      data: result.data,
+      meta: result.meta,
+    });
+  } catch (error) {
+    next(error);
+  }
+}

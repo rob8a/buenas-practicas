@@ -184,6 +184,25 @@ export async function getBuenaPracticaById(id) {
         },
       },
       buena_practica_foda: true,
+      buena_practica_actor_involucrado: {
+        orderBy: {
+          orden: "asc",
+        },
+      },
+      buena_practica_participacion_colaboracion: true,
+      buena_practica_evaluacion_indicadores: true,
+      buena_practica_indicador: {
+        orderBy: {
+          orden: "asc",
+        },
+      },
+      buena_practica_testimonio: {
+        orderBy: {
+          orden: "asc",
+        },
+      },
+      buena_practica_impacto_sostenibilidad: true,
+      buena_practica_conclusion: true,
       buena_practica_plan_mexico_sector: {
         include: {
           catalogo_plan_mexico_sector: true,
@@ -1107,4 +1126,635 @@ export async function updateFoda(id, payload) {
   });
 
   return result;
+}
+
+export async function updateParticipacion(id, payload) {
+  const buenaPracticaId = Number(id);
+
+  if (!buenaPracticaId || Number.isNaN(buenaPracticaId)) {
+    throw new HttpError(400, "El id de la buena práctica es inválido.");
+  }
+
+  const {
+    actores = [],
+    descripcion_coordinacion,
+    aportes_interdisciplinarios,
+  } = payload;
+
+  if (!Array.isArray(actores)) {
+    throw new HttpError(400, "El campo 'actores' debe ser un arreglo.");
+  }
+
+  if (!descripcion_coordinacion || !descripcion_coordinacion.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'descripcion_coordinacion' es obligatorio."
+    );
+  }
+
+  for (const actor of actores) {
+    if (!actor.nombre || !String(actor.nombre).trim()) {
+      throw new HttpError(
+        400,
+        "Cada actor debe incluir al menos el nombre."
+      );
+    }
+  }
+
+  const buenaPractica = await prisma.buena_practica.findUnique({
+    where: { id: buenaPracticaId },
+    include: {
+      buena_practica_estatus: true,
+      buena_practica_participacion_colaboracion: true,
+    },
+  });
+
+  if (!buenaPractica || !buenaPractica.activo) {
+    throw new HttpError(404, "La buena práctica no existe.");
+  }
+
+  if (buenaPractica.bloqueada_edicion) {
+    throw new HttpError(409, "La buena práctica está bloqueada para edición.");
+  }
+
+  if (!buenaPractica.buena_practica_estatus?.permite_edicion) {
+    throw new HttpError(
+      409,
+      "La buena práctica no puede editarse en su estatus actual."
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    let participacion;
+
+    if (buenaPractica.buena_practica_participacion_colaboracion) {
+      participacion =
+        await tx.buena_practica_participacion_colaboracion.update({
+          where: {
+            buena_practica_id: buenaPracticaId,
+          },
+          data: {
+            descripcion_coordinacion: descripcion_coordinacion.trim(),
+            aportes_interdisciplinarios:
+              aportes_interdisciplinarios?.trim() || null,
+          },
+        });
+    } else {
+      participacion =
+        await tx.buena_practica_participacion_colaboracion.create({
+          data: {
+            buena_practica_id: buenaPracticaId,
+            descripcion_coordinacion: descripcion_coordinacion.trim(),
+            aportes_interdisciplinarios:
+              aportes_interdisciplinarios?.trim() || null,
+          },
+        });
+    }
+
+    await tx.buena_practica_actor_involucrado.deleteMany({
+      where: { buena_practica_id: buenaPracticaId },
+    });
+
+    if (actores.length > 0) {
+      await tx.buena_practica_actor_involucrado.createMany({
+        data: actores.map((actor, index) => ({
+          buena_practica_id: buenaPracticaId,
+          nombre: String(actor.nombre).trim(),
+          rol: actor.rol?.trim() || null,
+          unidad_organizacional_id: null,
+          unidad_organizacional_texto: actor.unidad?.trim() || null,
+          orden: index + 1,
+        })),
+      });
+    }
+
+    const actoresActualizados =
+      await tx.buena_practica_actor_involucrado.findMany({
+        where: { buena_practica_id: buenaPracticaId },
+        orderBy: { orden: "asc" },
+      });
+
+    return {
+      participacion,
+      actores: actoresActualizados,
+    };
+  });
+
+  return result;
+}
+
+export async function updateEvaluacion(id, payload) {
+  const buenaPracticaId = Number(id);
+
+  if (!buenaPracticaId || Number.isNaN(buenaPracticaId)) {
+    throw new HttpError(400, "El id de la buena práctica es inválido.");
+  }
+
+  const {
+    instrumentos_evaluacion,
+    logros_clave,
+    hallazgos_identificados,
+    indicadores = [],
+    testimonios = [],
+  } = payload;
+
+  if (!Array.isArray(indicadores)) {
+    throw new HttpError(400, "El campo 'indicadores' debe ser un arreglo.");
+  }
+
+  if (!Array.isArray(testimonios)) {
+    throw new HttpError(400, "El campo 'testimonios' debe ser un arreglo.");
+  }
+
+  if (!logros_clave || !logros_clave.trim()) {
+    throw new HttpError(400, "El campo 'logros_clave' es obligatorio.");
+  }
+
+  for (const indicador of indicadores) {
+    if (!indicador.nombre || !String(indicador.nombre).trim()) {
+      throw new HttpError(
+        400,
+        "Cada indicador debe incluir al menos el nombre."
+      );
+    }
+  }
+
+  for (const testimonio of testimonios) {
+    if (!testimonio.testimonio || !String(testimonio.testimonio).trim()) {
+      throw new HttpError(
+        400,
+        "Cada testimonio debe incluir contenido."
+      );
+    }
+  }
+
+  const buenaPractica = await prisma.buena_practica.findUnique({
+    where: { id: buenaPracticaId },
+    include: {
+      buena_practica_estatus: true,
+      buena_practica_evaluacion_indicadores: true,
+    },
+  });
+
+  if (!buenaPractica || !buenaPractica.activo) {
+    throw new HttpError(404, "La buena práctica no existe.");
+  }
+
+  if (buenaPractica.bloqueada_edicion) {
+    throw new HttpError(409, "La buena práctica está bloqueada para edición.");
+  }
+
+  if (!buenaPractica.buena_practica_estatus?.permite_edicion) {
+    throw new HttpError(
+      409,
+      "La buena práctica no puede editarse en su estatus actual."
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    let evaluacion;
+
+    if (buenaPractica.buena_practica_evaluacion_indicadores) {
+      evaluacion = await tx.buena_practica_evaluacion_indicadores.update({
+        where: {
+          buena_practica_id: buenaPracticaId,
+        },
+        data: {
+          instrumentos_evaluacion: instrumentos_evaluacion?.trim() || null,
+          logros_clave: logros_clave.trim(),
+          hallazgos_identificados: hallazgos_identificados?.trim() || null,
+        },
+      });
+    } else {
+      evaluacion = await tx.buena_practica_evaluacion_indicadores.create({
+        data: {
+          buena_practica_id: buenaPracticaId,
+          instrumentos_evaluacion: instrumentos_evaluacion?.trim() || null,
+          logros_clave: logros_clave.trim(),
+          hallazgos_identificados: hallazgos_identificados?.trim() || null,
+        },
+      });
+    }
+
+    await tx.buena_practica_indicador.deleteMany({
+      where: { buena_practica_id: buenaPracticaId },
+    });
+
+    if (indicadores.length > 0) {
+      await tx.buena_practica_indicador.createMany({
+        data: indicadores.map((item, index) => ({
+          buena_practica_id: buenaPracticaId,
+          nombre: String(item.nombre).trim(),
+          indicador: item.indicador?.trim() || null,
+          unidad_medida: item.unidad_medida?.trim() || null,
+          meta_esperada: item.meta_esperada?.trim() || null,
+          descripcion_breve: item.descripcion_breve?.trim() || null,
+          periodo: item.periodo?.trim() || null,
+          orden: index + 1,
+        })),
+      });
+    }
+
+    await tx.buena_practica_testimonio.deleteMany({
+      where: { buena_practica_id: buenaPracticaId },
+    });
+
+    if (testimonios.length > 0) {
+      await tx.buena_practica_testimonio.createMany({
+        data: testimonios.map((item, index) => ({
+          buena_practica_id: buenaPracticaId,
+          testimonio: String(item.testimonio).trim(),
+          cargo: item.cargo?.trim() || null,
+          orden: index + 1,
+        })),
+      });
+    }
+
+    const indicadoresActualizados = await tx.buena_practica_indicador.findMany({
+      where: { buena_practica_id: buenaPracticaId },
+      orderBy: { orden: "asc" },
+    });
+
+    const testimoniosActualizados = await tx.buena_practica_testimonio.findMany({
+      where: { buena_practica_id: buenaPracticaId },
+      orderBy: { orden: "asc" },
+    });
+
+    return {
+      evaluacion,
+      indicadores: indicadoresActualizados,
+      testimonios: testimoniosActualizados,
+    };
+  });
+
+  return result;
+}
+
+export async function updateImpacto(id, payload) {
+  const buenaPracticaId = Number(id);
+
+  if (!buenaPracticaId || Number.isNaN(buenaPracticaId)) {
+    throw new HttpError(400, "El id de la buena práctica es inválido.");
+  }
+
+  const {
+    sistematizacion_hallazgos,
+    instancias_recomendaciones,
+    resultados_inmediatos,
+    efectos_mediano_plazo,
+    vinculacion_pide_seaes_ods,
+    condiciones_permanencia,
+    aspectos_replicabilidad,
+    motor_cambio_mejora_continua,
+    acciones_estrategias_derivadas,
+  } = payload;
+
+  if (!sistematizacion_hallazgos || !sistematizacion_hallazgos.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'sistematizacion_hallazgos' es obligatorio."
+    );
+  }
+
+  if (!instancias_recomendaciones || !instancias_recomendaciones.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'instancias_recomendaciones' es obligatorio."
+    );
+  }
+
+  if (!resultados_inmediatos || !resultados_inmediatos.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'resultados_inmediatos' es obligatorio."
+    );
+  }
+
+  if (!efectos_mediano_plazo || !efectos_mediano_plazo.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'efectos_mediano_plazo' es obligatorio."
+    );
+  }
+
+  if (!vinculacion_pide_seaes_ods || !vinculacion_pide_seaes_ods.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'vinculacion_pide_seaes_ods' es obligatorio."
+    );
+  }
+
+  if (!condiciones_permanencia || !condiciones_permanencia.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'condiciones_permanencia' es obligatorio."
+    );
+  }
+
+  if (!aspectos_replicabilidad || !aspectos_replicabilidad.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'aspectos_replicabilidad' es obligatorio."
+    );
+  }
+
+  if (
+    !motor_cambio_mejora_continua ||
+    !motor_cambio_mejora_continua.trim()
+  ) {
+    throw new HttpError(
+      400,
+      "El campo 'motor_cambio_mejora_continua' es obligatorio."
+    );
+  }
+
+  if (
+    !acciones_estrategias_derivadas ||
+    !acciones_estrategias_derivadas.trim()
+  ) {
+    throw new HttpError(
+      400,
+      "El campo 'acciones_estrategias_derivadas' es obligatorio."
+    );
+  }
+
+  const buenaPractica = await prisma.buena_practica.findUnique({
+    where: { id: buenaPracticaId },
+    include: {
+      buena_practica_estatus: true,
+      buena_practica_impacto_sostenibilidad: true,
+    },
+  });
+
+  if (!buenaPractica || !buenaPractica.activo) {
+    throw new HttpError(404, "La buena práctica no existe.");
+  }
+
+  if (buenaPractica.bloqueada_edicion) {
+    throw new HttpError(409, "La buena práctica está bloqueada para edición.");
+  }
+
+  if (!buenaPractica.buena_practica_estatus?.permite_edicion) {
+    throw new HttpError(
+      409,
+      "La buena práctica no puede editarse en su estatus actual."
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    let impacto;
+
+    if (buenaPractica.buena_practica_impacto_sostenibilidad) {
+      impacto = await tx.buena_practica_impacto_sostenibilidad.update({
+        where: {
+          buena_practica_id: buenaPracticaId,
+        },
+        data: {
+          sistematizacion_hallazgos: sistematizacion_hallazgos.trim(),
+          instancias_recomendaciones: instancias_recomendaciones.trim(),
+          resultados_inmediatos: resultados_inmediatos.trim(),
+          efectos_mediano_plazo: efectos_mediano_plazo.trim(),
+          vinculacion_pide_seaes_ods: vinculacion_pide_seaes_ods.trim(),
+          condiciones_permanencia: condiciones_permanencia.trim(),
+          aspectos_replicabilidad: aspectos_replicabilidad.trim(),
+          motor_cambio_mejora_continua: motor_cambio_mejora_continua.trim(),
+          acciones_estrategias_derivadas:
+            acciones_estrategias_derivadas.trim(),
+        },
+      });
+    } else {
+      impacto = await tx.buena_practica_impacto_sostenibilidad.create({
+        data: {
+          buena_practica_id: buenaPracticaId,
+          sistematizacion_hallazgos: sistematizacion_hallazgos.trim(),
+          instancias_recomendaciones: instancias_recomendaciones.trim(),
+          resultados_inmediatos: resultados_inmediatos.trim(),
+          efectos_mediano_plazo: efectos_mediano_plazo.trim(),
+          vinculacion_pide_seaes_ods: vinculacion_pide_seaes_ods.trim(),
+          condiciones_permanencia: condiciones_permanencia.trim(),
+          aspectos_replicabilidad: aspectos_replicabilidad.trim(),
+          motor_cambio_mejora_continua: motor_cambio_mejora_continua.trim(),
+          acciones_estrategias_derivadas:
+            acciones_estrategias_derivadas.trim(),
+        },
+      });
+    }
+
+    return { impacto };
+  });
+
+  return result;
+}
+
+export async function updateConclusiones(id, payload) {
+  const buenaPracticaId = Number(id);
+
+  if (!buenaPracticaId || Number.isNaN(buenaPracticaId)) {
+    throw new HttpError(400, "El id de la buena práctica es inválido.");
+  }
+
+  const {
+    principales_aprendizajes,
+    recomendaciones_propuestas,
+  } = payload;
+
+  if (!principales_aprendizajes || !principales_aprendizajes.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'principales_aprendizajes' es obligatorio."
+    );
+  }
+
+  if (!recomendaciones_propuestas || !recomendaciones_propuestas.trim()) {
+    throw new HttpError(
+      400,
+      "El campo 'recomendaciones_propuestas' es obligatorio."
+    );
+  }
+
+  const buenaPractica = await prisma.buena_practica.findUnique({
+    where: { id: buenaPracticaId },
+    include: {
+      buena_practica_estatus: true,
+      buena_practica_conclusion: true, // cambia a plural si así está en tu Prisma
+    },
+  });
+
+  if (!buenaPractica || !buenaPractica.activo) {
+    throw new HttpError(404, "La buena práctica no existe.");
+  }
+
+  if (buenaPractica.bloqueada_edicion) {
+    throw new HttpError(409, "La buena práctica está bloqueada para edición.");
+  }
+
+  if (!buenaPractica.buena_practica_estatus?.permite_edicion) {
+    throw new HttpError(
+      409,
+      "La buena práctica no puede editarse en su estatus actual."
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    let conclusiones;
+
+    if (buenaPractica.buena_practica_conclusion) {
+      conclusiones = await tx.buena_practica_conclusion.update({
+        where: {
+          buena_practica_id: buenaPracticaId,
+        },
+        data: {
+          principales_aprendizajes: principales_aprendizajes.trim(),
+          recomendaciones_propuestas: recomendaciones_propuestas.trim(),
+        },
+      });
+    } else {
+      conclusiones = await tx.buena_practica_conclusion.create({
+        data: {
+          buena_practica_id: buenaPracticaId,
+          principales_aprendizajes: principales_aprendizajes.trim(),
+          recomendaciones_propuestas: recomendaciones_propuestas.trim(),
+        },
+      });
+    }
+
+    return { conclusiones };
+  });
+
+  return result;
+}
+
+export async function getBuenasPracticas(query) {
+  const {
+    search = "",
+    unidad_id,
+    alineaciones = "",
+    page = 1,
+    limit = 5,
+  } = query;
+
+  const pageNumber = Math.max(Number(page) || 1, 1);
+  const pageSize = Math.max(Number(limit) || 5, 1);
+
+  const where = {
+    activo: true,
+  };
+
+  if (search.trim()) {
+    where.OR = [
+      {
+        titulo: {
+          contains: search.trim(),
+        },
+      },
+      {
+        descripcion_breve: {
+          contains: search.trim(),
+        },
+      },
+      {
+        buena_practica_datos_generales: {
+          subtitulo_lema: {
+            contains: search.trim(),
+          },
+        },
+      },
+    ];
+  }
+
+  if (unidad_id) {
+    where.unidad_organizacional_id = Number(unidad_id);
+  }
+
+  const alineacionIds = alineaciones
+    ? String(alineaciones)
+        .split(",")
+        .map((item) => Number(item))
+        .filter((item) => !Number.isNaN(item))
+    : [];
+
+  if (alineacionIds.length > 0) {
+    where.buena_practica_alineacion = {
+      some: {
+        catalogo_alineacion_id: {
+          in: alineacionIds,
+        },
+      },
+    };
+  }
+
+  const total = await prisma.buena_practica.count({ where });
+
+  const items = await prisma.buena_practica.findMany({
+    where,
+    skip: (pageNumber - 1) * pageSize,
+    take: pageSize,
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      unidad_organizacional: true,
+      buena_practica_estatus: true,
+      buena_practica_datos_generales: true,
+      buena_practica_alineacion: {
+        include: {
+          catalogo_alineacion: true,
+        },
+        orderBy: {
+          catalogo_alineacion: {
+            orden: "asc",
+          },
+        },
+      },
+    },
+  });
+
+  const data = items.map((item) => ({
+    id: item.id,
+    titulo: item.titulo,
+    lema: item.buena_practica_datos_generales?.subtitulo_lema || "",
+    descripcion_breve: item.descripcion_breve || "",
+    fecha: item.createdAt,
+    unidad_responsable: item.unidad_organizacional?.nombre || "Sin especificar",
+    unidad_id: item.unidad_organizacional_id,
+    estatus: item.buena_practica_estatus
+      ? {
+          id: item.buena_practica_estatus.id,
+          nombre: item.buena_practica_estatus.nombre,
+        }
+      : null,
+    inscripciones: item.buena_practica_alineacion.map((rel) => ({
+      id: rel.catalogo_alineacion?.id,
+      grupo: rel.catalogo_alineacion?.grupo,
+      nombre: rel.catalogo_alineacion?.valor,
+      label: `${formatGrupoListado(rel.catalogo_alineacion?.grupo)}: ${
+        rel.catalogo_alineacion?.valor || ""
+      }`,
+    })),
+  }));
+
+  return {
+    data,
+    meta: {
+      total,
+      page: pageNumber,
+      limit: pageSize,
+      totalPages: Math.max(Math.ceil(total / pageSize), 1),
+    },
+  };
+}
+
+function formatGrupoListado(grupo) {
+  switch (grupo) {
+    case "FUNCION_SUSTANTIVA":
+      return "Función";
+    case "CRITERIO_SEAES":
+      return "SEAES";
+    case "PROGRAMA_SECTORIAL":
+      return "PIDE";
+    case "EJE_TRANSVERSAL":
+      return "Eje";
+    default:
+      return grupo || "Grupo";
+  }
 }

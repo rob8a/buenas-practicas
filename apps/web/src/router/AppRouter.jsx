@@ -12,6 +12,11 @@ import ContextoPropositoPage from "../pages/ficha/ContextoPropositoPage";
 import FundamentacionPage from "../pages/ficha/FundamentacionPage";
 import MetodologiaPage from "../pages/ficha/MetodologiaPage";
 import FodaPage from "../pages/ficha/FodaPage";
+import ParticipacionPage from "../pages/ficha/ParticipacionPage";
+import EvaluacionPage from "../pages/ficha/EvaluacionPage";
+import ImpactoPage from "../pages/ficha/ImpactoPage";
+import ConclusionesPage from "../pages/ficha/ConclusionesPage";
+import ListadoPage from "../pages/buenas-practicas/ListadoPage";
 
 export default function AppRouter() {
   return (
@@ -32,14 +37,7 @@ export default function AppRouter() {
         }
       />
 
-      <Route
-        path="/app/listado"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Listado de Buenas Prácticas" />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/app/listado" element={<ListadoPage />} />
 
       <Route
         path="/app/ficha/:id"
@@ -75,6 +73,17 @@ export default function AppRouter() {
           path="foda"
           element={<FodaPage />}
         />
+
+        <Route 
+          path="participacion" 
+          element={<ParticipacionPage />} 
+        />
+
+        <Route path="evaluacion" element={<EvaluacionPage />} />
+
+        <Route path="impacto" element={<ImpactoPage />} />
+
+        <Route path="conclusiones" element={<ConclusionesPage />} />
 
       </Route>
 
