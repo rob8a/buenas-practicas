@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
 import { useBuenaPractica } from "../../hooks/useBuenaPractica";
+import { useOutletContext } from "react-router-dom";
 
 const initialForm = {
   principales_aprendizajes: "",
@@ -17,6 +18,8 @@ export default function ConclusionesPage() {
   const [saveError, setSaveError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const { reloadValidacion, canEdit } = useOutletContext();
 
   useEffect(() => {
     if (!buenaPractica) return;
@@ -41,6 +44,8 @@ export default function ConclusionesPage() {
   }
 
   async function saveForm() {
+    if (!canEdit) return;
+
     setSaveError("");
     setSuccess("");
 
@@ -51,7 +56,7 @@ export default function ConclusionesPage() {
         method: "PATCH",
         body: JSON.stringify(form),
       });
-
+      await reloadValidacion();
       setSuccess(
         "Conclusiones guardadas correctamente."
       );
@@ -100,6 +105,11 @@ export default function ConclusionesPage() {
   return (
     <div className="space-y-8">
       {/* encabezado */}
+      {!canEdit ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          La ficha se encuentra en <strong>{buenaPractica?.buena_practica_estatus?.nombre}</strong> y actualmente no permite edición.
+        </div>
+      ) : null}
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-slate-900">
           2.9 Conclusiones
@@ -124,6 +134,7 @@ export default function ConclusionesPage() {
             name="principales_aprendizajes"
             value={form.principales_aprendizajes}
             onChange={handleChange}
+            disabled={!canEdit}
           />
 
           <TextareaField
@@ -133,6 +144,7 @@ export default function ConclusionesPage() {
             name="recomendaciones_propuestas"
             value={form.recomendaciones_propuestas}
             onChange={handleChange}
+            disabled={!canEdit}
           />
         </section>
 
@@ -195,6 +207,12 @@ export default function ConclusionesPage() {
         ) : null}
 
         <div className="flex justify-end">
+          <p className="text-sm text-slate-500">
+            {canEdit
+              ? ""
+              : "La ficha está en una etapa de revisión y actualmente no permite edición."}
+          </p>
+          {canEdit ? (
           <button
             type="submit"
             disabled={saving}
@@ -202,6 +220,7 @@ export default function ConclusionesPage() {
           >
             {saving ? "Guardando..." : "Guardar conclusiones"}
           </button>
+          ) : null}
         </div>
       </form>
     </div>
@@ -215,6 +234,7 @@ function TextareaField({
   name,
   value,
   onChange,
+  disabled = false,
 }) {
   return (
     <div>
@@ -231,7 +251,13 @@ function TextareaField({
         value={value}
         onChange={onChange}
         rows={6}
-        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 outline-none"
+        disabled={disabled}
+        className={[
+          "w-full rounded-xl px-4 py-3 outline-none",
+          disabled
+            ? "bg-slate-50 text-slate-700 border border-slate-200 cursor-default"
+            : "border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+        ].join(" ")}
       />
     </div>
   );

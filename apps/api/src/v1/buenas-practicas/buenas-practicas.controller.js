@@ -201,3 +201,212 @@ export async function getBuenasPracticas(req, res, next) {
     next(error);
   }
 }
+
+export async function getValidacionEnvio(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.getValidacionEnvio(id);
+
+    return res.json({
+      ok: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function sendToAutoevaluacion(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.sendToAutoevaluacion(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "La ficha fue enviada correctamente a autoevaluación.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getAutoevaluacion(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.getAutoevaluacion(id);
+
+    return res.json({
+      ok: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateAutoevaluacion(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateAutoevaluacion(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "Autoevaluación guardada correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function sendAutoevaluacionToPares(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.sendAutoevaluacionToPares(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "La autoevaluación fue enviada correctamente a evaluación de pares.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getEvaluacionPares(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.getEvaluacionPares(id);
+
+    return res.json({
+      ok: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateEvaluacionPares(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateEvaluacionPares(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "Evaluación de pares guardada correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function dictaminarEvaluacionPares(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.dictaminarEvaluacionPares(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "El dictamen de evaluación de pares se registró correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getEvaluacionInstitucional(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.getEvaluacionInstitucional(id);
+
+    return res.json({
+      ok: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateEvaluacionInstitucional(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.updateEvaluacionInstitucional(
+      id,
+      req.body
+    );
+
+    return res.json({
+      ok: true,
+      message: "Evaluación institucional guardada correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function dictaminarEvaluacionInstitucional(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result =
+      await buenasPracticasService.dictaminarEvaluacionInstitucional(
+        id,
+        req.body
+      );
+
+    return res.json({
+      ok: true,
+      message: "El dictamen institucional se registró correctamente.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getEvaluacionesResumen(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const result = await buenasPracticasService.getEvaluacionesResumen(id);
+
+    return res.json({
+      ok: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import { apiFetch } from "../../lib/api";
 import { useBuenaPractica } from "../../hooks/useBuenaPractica";
+import { useOutletContext } from "react-router-dom";
 
 const initialForm = {
   entorno: "",
@@ -39,6 +40,8 @@ export default function ContextoPropositoPage() {
 
   const [timelineForm, setTimelineForm] = useState(initialTimelineForm);
   const [timelineItems, setTimelineItems] = useState([]);
+
+  const { reloadValidacion, canEdit } = useOutletContext();
 
   useEffect(() => {
     async function loadUnidades() {
@@ -188,10 +191,12 @@ export default function ContextoPropositoPage() {
         }),
       });
 
+      await reloadValidacion();
       if (goNext) {
         navigate(`/app/ficha/${id}/fundamentacion`);
         return;
       }
+
 
       setSuccess(
         "Contexto y propósito guardados correctamente."
@@ -240,6 +245,11 @@ export default function ContextoPropositoPage() {
 
   return (
     <div className="space-y-8">
+      {!canEdit ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          La ficha se encuentra en <strong>{buenaPractica?.buena_practica_estatus?.nombre}</strong> y actualmente no permite edición.
+        </div>
+      ) : null}
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-slate-900">
           2. Contexto y propósito
@@ -608,11 +618,15 @@ export default function ContextoPropositoPage() {
 
         <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Puedes guardar el avance actual como borrador o guardar y continuar al
-            siguiente apartado de la ficha.
+            {canEdit
+              ? "Puedes guardar el avance actual como borrador o guardar y continuar al siguiente apartado de la ficha."
+              : "La ficha está en una etapa de revisión y actualmente no permite edición."}
+            
           </p>
 
+              {canEdit ? (
           <div className="flex flex-col gap-3 sm:flex-row">
+            
             <button
               type="submit"
               disabled={saving}
@@ -630,6 +644,7 @@ export default function ContextoPropositoPage() {
               {saving ? "Guardando..." : "Guardar y continuar"}
             </button>
           </div>
+          ) : null}
         </div>
       </form>
     </div>
@@ -645,6 +660,7 @@ function TextareaField({
   hint = "",
   placeholder = "",
 }) {
+  const { canEdit } = useOutletContext();
   return (
     <div>
       <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -659,7 +675,13 @@ function TextareaField({
         onChange={onChange}
         rows={4}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+        disabled={!canEdit}
+        className={[
+          "w-full rounded-xl px-4 py-3 outline-none",
+          !canEdit
+            ? "bg-slate-50 text-slate-700 border border-slate-200 cursor-default"
+            : "border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+        ].join(" ")}
       />
     </div>
   );

@@ -9,20 +9,23 @@ datasource db {
 }
 
 model user {
-  id                                                     Int                          @id @default(autoincrement())
-  numeroTrabajador                                       String?                      @unique @db.VarChar(20)
-  usuario                                                String                       @unique @db.VarChar(50)
-  email                                                  String                       @unique @db.VarChar(150)
-  nombre                                                 String                       @db.VarChar(80)
-  apellidoPaterno                                        String                       @db.VarChar(80)
-  apellidoMaterno                                        String?                      @db.VarChar(80)
-  passwordHash                                           String?                      @db.VarChar(255)
-  usaAuthInstitucional                                   Boolean                      @default(false)
-  activo                                                 Boolean                      @default(true)
-  createdAt                                              DateTime                     @default(now())
-  updatedAt                                              DateTime                     @updatedAt
-  buena_practica_buena_practica_actualizado_por_idTouser buena_practica[]             @relation("buena_practica_actualizado_por_idTouser")
-  buena_practica_buena_practica_creado_por_idTouser      buena_practica[]             @relation("buena_practica_creado_por_idTouser")
+  id                                                     Int                                       @id @default(autoincrement())
+  numeroTrabajador                                       String?                                   @unique @db.VarChar(20)
+  usuario                                                String                                    @unique @db.VarChar(50)
+  email                                                  String                                    @unique @db.VarChar(150)
+  nombre                                                 String                                    @db.VarChar(80)
+  apellidoPaterno                                        String                                    @db.VarChar(80)
+  apellidoMaterno                                        String?                                   @db.VarChar(80)
+  passwordHash                                           String?                                   @db.VarChar(255)
+  usaAuthInstitucional                                   Boolean                                   @default(false)
+  activo                                                 Boolean                                   @default(true)
+  createdAt                                              DateTime                                  @default(now())
+  updatedAt                                              DateTime                                  @updatedAt
+  buena_practica_buena_practica_actualizado_por_idTouser buena_practica[]                          @relation("buena_practica_actualizado_por_idTouser")
+  buena_practica_buena_practica_creado_por_idTouser      buena_practica[]                          @relation("buena_practica_creado_por_idTouser")
+  buena_practica_autoevaluacion                          buena_practica_autoevaluacion[]
+  buena_practica_evaluacion_institucional                buena_practica_evaluacion_institucional[]
+  buena_practica_evaluacion_pares                        buena_practica_evaluacion_pares[]
   buena_practica_historial                               buena_practica_historial[]
   buena_practica_responsable                             buena_practica_responsable[]
   roles                                                  user_rol[]
@@ -93,10 +96,13 @@ model buena_practica {
   unidad_organizacional                        unidad_organizacional                      @relation(fields: [unidad_organizacional_id], references: [id], map: "fk_buena_practica_unidad_organizacional")
   buena_practica_actor_involucrado             buena_practica_actor_involucrado[]
   buena_practica_alineacion                    buena_practica_alineacion[]
+  buena_practica_autoevaluacion                buena_practica_autoevaluacion?
   buena_practica_conclusion                    buena_practica_conclusion?
   buena_practica_contexto_proposito            buena_practica_contexto_proposito?
   buena_practica_datos_generales               buena_practica_datos_generales?
   buena_practica_evaluacion_indicadores        buena_practica_evaluacion_indicadores?
+  buena_practica_evaluacion_institucional      buena_practica_evaluacion_institucional?
+  buena_practica_evaluacion_pares              buena_practica_evaluacion_pares?
   buena_practica_fase                          buena_practica_fase[]
   buena_practica_foda                          buena_practica_foda?
   buena_practica_fundamentacion                buena_practica_fundamentacion?
@@ -517,6 +523,171 @@ model unidad_organizacional {
   @@index([nombre], map: "idx_unidad_organizacional_nombre")
   @@index([padre_id], map: "idx_unidad_organizacional_padre_id")
   @@index([tipo], map: "idx_unidad_organizacional_tipo")
+}
+
+model buena_practica_autoevaluacion {
+  id                                      Int                                       @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id                       Int                                       @unique(map: "uk_buena_practica_autoevaluacion_bp") @db.UnsignedInt
+  puntaje_total                           Int?                                      @db.UnsignedTinyInt
+  interpretacion                          String?                                   @db.VarChar(100)
+  completada                              Boolean                                   @default(false)
+  enviada_evaluacion_pares                Boolean                                   @default(false)
+  evaluado_por_id                         Int
+  created_at                              DateTime                                  @default(now()) @db.Timestamp(0)
+  updated_at                              DateTime                                  @default(now()) @db.Timestamp(0)
+  buena_practica                          buena_practica                            @relation(fields: [buena_practica_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_buena_practica_autoevaluacion_bp")
+  user                                    user                                      @relation(fields: [evaluado_por_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_buena_practica_autoevaluacion_user")
+  buena_practica_autoevaluacion_respuesta buena_practica_autoevaluacion_respuesta[]
+
+  @@index([evaluado_por_id], map: "fk_buena_practica_autoevaluacion_user")
+}
+
+model buena_practica_autoevaluacion_respuesta {
+  id                                  Int                              @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_autoevaluacion_id    Int                              @db.UnsignedInt
+  catalogo_autoevaluacion_criterio_id Int                              @db.UnsignedInt
+  nivel                               Int?                             @db.UnsignedTinyInt
+  justificacion                       String?                          @db.Text
+  created_at                          DateTime                         @default(now()) @db.Timestamp(0)
+  updated_at                          DateTime                         @default(now()) @db.Timestamp(0)
+  catalogo_autoevaluacion_criterio    catalogo_autoevaluacion_criterio @relation(fields: [catalogo_autoevaluacion_criterio_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_autoevaluacion_respuesta_criterio")
+  buena_practica_autoevaluacion       buena_practica_autoevaluacion    @relation(fields: [buena_practica_autoevaluacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_autoevaluacion_respuesta_master")
+
+  @@unique([buena_practica_autoevaluacion_id, catalogo_autoevaluacion_criterio_id], map: "uk_autoevaluacion_respuesta_unica")
+  @@index([catalogo_autoevaluacion_criterio_id], map: "fk_autoevaluacion_respuesta_criterio")
+}
+
+model catalogo_autoevaluacion_criterio {
+  id                                      Int                                       @id @default(autoincrement()) @db.UnsignedInt
+  clave                                   String                                    @unique(map: "uk_catalogo_autoevaluacion_criterio_clave") @db.VarChar(100)
+  nombre                                  String                                    @db.VarChar(150)
+  descripcion                             String?                                   @db.VarChar(255)
+  orden                                   Int                                       @db.UnsignedTinyInt
+  activo                                  Boolean                                   @default(true)
+  created_at                              DateTime                                  @default(now()) @db.Timestamp(0)
+  updated_at                              DateTime                                  @default(now()) @db.Timestamp(0)
+  buena_practica_autoevaluacion_respuesta buena_practica_autoevaluacion_respuesta[]
+}
+
+model buena_practica_evaluacion_pares {
+  id                                        Int                                         @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id                         Int                                         @unique(map: "uk_buena_practica_evaluacion_pares_bp") @db.UnsignedInt
+  evaluado_por_id                           Int
+  puntaje_total_valido                      Decimal?                                    @db.Decimal(6, 2)
+  puntaje_maximo_valido                     Decimal?                                    @db.Decimal(6, 2)
+  promedio                                  Decimal?                                    @db.Decimal(6, 2)
+  recomendacion                             String?                                     @db.VarChar(100)
+  observaciones_clave                       String?                                     @db.Text
+  completada                                Boolean                                     @default(false)
+  enviada_evaluacion_institucional          Boolean                                     @default(false)
+  created_at                                DateTime                                    @default(now()) @db.Timestamp(0)
+  updated_at                                DateTime                                    @default(now()) @db.Timestamp(0)
+  buena_practica                            buena_practica                              @relation(fields: [buena_practica_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_buena_practica_evaluacion_pares_bp")
+  user                                      user                                        @relation(fields: [evaluado_por_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_buena_practica_evaluacion_pares_user")
+  buena_practica_evaluacion_pares_respuesta buena_practica_evaluacion_pares_respuesta[]
+
+  @@index([evaluado_por_id], map: "fk_buena_practica_evaluacion_pares_user")
+}
+
+model buena_practica_evaluacion_pares_respuesta {
+  id                                    Int                                @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_evaluacion_pares_id    Int                                @db.UnsignedInt
+  catalogo_evaluacion_pares_criterio_id Int                                @db.UnsignedInt
+  nivel                                 String?                            @db.VarChar(10)
+  justificacion                         String?                            @db.Text
+  created_at                            DateTime                           @default(now()) @db.Timestamp(0)
+  updated_at                            DateTime                           @default(now()) @db.Timestamp(0)
+  catalogo_evaluacion_pares_criterio    catalogo_evaluacion_pares_criterio @relation(fields: [catalogo_evaluacion_pares_criterio_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_evaluacion_pares_respuesta_criterio")
+  buena_practica_evaluacion_pares       buena_practica_evaluacion_pares    @relation(fields: [buena_practica_evaluacion_pares_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_evaluacion_pares_respuesta_master")
+
+  @@unique([buena_practica_evaluacion_pares_id, catalogo_evaluacion_pares_criterio_id], map: "uk_evaluacion_pares_respuesta_unica")
+  @@index([catalogo_evaluacion_pares_criterio_id], map: "fk_evaluacion_pares_respuesta_criterio")
+}
+
+model catalogo_evaluacion_pares_criterio {
+  id                                        Int                                         @id @default(autoincrement()) @db.UnsignedInt
+  clave                                     String                                      @unique(map: "uk_catalogo_evaluacion_pares_criterio_clave") @db.VarChar(100)
+  nombre                                    String                                      @db.VarChar(150)
+  descripcion                               String?                                     @db.VarChar(255)
+  es_critico                                Boolean                                     @default(false)
+  orden                                     Int                                         @db.UnsignedTinyInt
+  activo                                    Boolean                                     @default(true)
+  created_at                                DateTime                                    @default(now()) @db.Timestamp(0)
+  updated_at                                DateTime                                    @default(now()) @db.Timestamp(0)
+  buena_practica_evaluacion_pares_respuesta buena_practica_evaluacion_pares_respuesta[]
+  catalogo_evaluacion_pares_rubrica         catalogo_evaluacion_pares_rubrica[]
+}
+
+model catalogo_evaluacion_pares_rubrica {
+  id                                    Int                                @id @default(autoincrement()) @db.UnsignedInt
+  catalogo_evaluacion_pares_criterio_id Int                                @db.UnsignedInt
+  nivel                                 Int                                @db.UnsignedTinyInt
+  descripcion                           String                             @db.Text
+  created_at                            DateTime                           @default(now()) @db.Timestamp(0)
+  updated_at                            DateTime                           @default(now()) @db.Timestamp(0)
+  catalogo_evaluacion_pares_criterio    catalogo_evaluacion_pares_criterio @relation(fields: [catalogo_evaluacion_pares_criterio_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_evaluacion_pares_rubrica_criterio")
+
+  @@unique([catalogo_evaluacion_pares_criterio_id, nivel], map: "uk_evaluacion_pares_rubrica")
+}
+
+model buena_practica_evaluacion_institucional {
+  id                                                Int                                                 @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_id                                 Int                                                 @unique(map: "uk_buena_practica_evaluacion_institucional_bp") @db.UnsignedInt
+  evaluado_por_id                                   Int
+  puntaje_total                                     Decimal?                                            @db.Decimal(6, 2)
+  puntaje_maximo                                    Decimal?                                            @db.Decimal(6, 2)
+  promedio                                          Decimal?                                            @db.Decimal(6, 2)
+  dictamen                                          String?                                             @db.VarChar(50)
+  observaciones_adicionales                         String?                                             @db.Text
+  completada                                        Boolean                                             @default(false)
+  dictaminada                                       Boolean                                             @default(false)
+  created_at                                        DateTime                                            @default(now()) @db.Timestamp(0)
+  updated_at                                        DateTime                                            @default(now()) @db.Timestamp(0)
+  buena_practica                                    buena_practica                                      @relation(fields: [buena_practica_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_buena_practica_evaluacion_institucional_bp")
+  user                                              user                                                @relation(fields: [evaluado_por_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_buena_practica_evaluacion_institucional_user")
+  buena_practica_evaluacion_institucional_respuesta buena_practica_evaluacion_institucional_respuesta[]
+
+  @@index([evaluado_por_id], map: "fk_buena_practica_evaluacion_institucional_user")
+}
+
+model buena_practica_evaluacion_institucional_respuesta {
+  id                                            Int                                        @id @default(autoincrement()) @db.UnsignedInt
+  buena_practica_evaluacion_institucional_id    Int                                        @db.UnsignedInt
+  catalogo_evaluacion_institucional_criterio_id Int                                        @db.UnsignedInt
+  nivel                                         String?                                    @db.VarChar(20)
+  justificacion                                 String?                                    @db.Text
+  created_at                                    DateTime                                   @default(now()) @db.Timestamp(0)
+  updated_at                                    DateTime                                   @default(now()) @db.Timestamp(0)
+  catalogo_evaluacion_institucional_criterio    catalogo_evaluacion_institucional_criterio @relation(fields: [catalogo_evaluacion_institucional_criterio_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_evaluacion_institucional_respuesta_criterio")
+  buena_practica_evaluacion_institucional       buena_practica_evaluacion_institucional    @relation(fields: [buena_practica_evaluacion_institucional_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_evaluacion_institucional_respuesta_master")
+
+  @@unique([buena_practica_evaluacion_institucional_id, catalogo_evaluacion_institucional_criterio_id], map: "uk_evaluacion_institucional_respuesta_unica")
+  @@index([catalogo_evaluacion_institucional_criterio_id], map: "fk_evaluacion_institucional_respuesta_criterio")
+}
+
+model catalogo_evaluacion_institucional_criterio {
+  id                                                Int                                                 @id @default(autoincrement()) @db.UnsignedInt
+  clave                                             String                                              @unique(map: "uk_catalogo_evaluacion_institucional_criterio_clave") @db.VarChar(100)
+  nombre                                            String                                              @db.VarChar(150)
+  descripcion                                       String?                                             @db.VarChar(255)
+  orden                                             Int                                                 @db.UnsignedTinyInt
+  activo                                            Boolean                                             @default(true)
+  created_at                                        DateTime                                            @default(now()) @db.Timestamp(0)
+  updated_at                                        DateTime                                            @default(now()) @db.Timestamp(0)
+  buena_practica_evaluacion_institucional_respuesta buena_practica_evaluacion_institucional_respuesta[]
+  catalogo_evaluacion_institucional_rubrica         catalogo_evaluacion_institucional_rubrica[]
+}
+
+model catalogo_evaluacion_institucional_rubrica {
+  id                                            Int                                        @id @default(autoincrement()) @db.UnsignedInt
+  catalogo_evaluacion_institucional_criterio_id Int                                        @db.UnsignedInt
+  nivel                                         String                                     @db.VarChar(20)
+  descripcion                                   String                                     @db.Text
+  created_at                                    DateTime                                   @default(now()) @db.Timestamp(0)
+  updated_at                                    DateTime                                   @default(now()) @db.Timestamp(0)
+  catalogo_evaluacion_institucional_criterio    catalogo_evaluacion_institucional_criterio @relation(fields: [catalogo_evaluacion_institucional_criterio_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_evaluacion_institucional_rubrica_criterio")
+
+  @@unique([catalogo_evaluacion_institucional_criterio_id, nivel], map: "uk_evaluacion_institucional_rubrica")
 }
 
 enum catalogo_alineacion_marco {

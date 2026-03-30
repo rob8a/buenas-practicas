@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Info, X } from "lucide-react";
 import { apiFetch } from "../../lib/api";
 import { useBuenaPractica } from "../../hooks/useBuenaPractica";
+import { useOutletContext } from "react-router-dom";
 
 const PHASES = [
   {
@@ -138,6 +139,8 @@ export default function MetodologiaPage() {
   const [saving, setSaving] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
+  const { reloadValidacion, canEdit } = useOutletContext();
+
   useEffect(() => {
     if (!buenaPractica) return;
 
@@ -257,6 +260,7 @@ export default function MetodologiaPage() {
         }),
         });
 
+        await reloadValidacion();
       if (goNext) {
         navigate(`/app/ficha/${id}/foda`);
         return;
@@ -311,6 +315,11 @@ export default function MetodologiaPage() {
   return (
     <>
       <div className="space-y-8">
+        {!canEdit ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          La ficha se encuentra en <strong>{buenaPractica?.buena_practica_estatus?.nombre}</strong> y actualmente no permite edición.
+        </div>
+      ) : null}
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold text-slate-900">
             2.4 Metodología y desarrollo
@@ -540,10 +549,11 @@ export default function MetodologiaPage() {
 
           <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-500">
-              Puedes guardar el avance actual como borrador o guardar y continuar
-              al siguiente apartado de la ficha.
+              {canEdit
+              ? "Puedes guardar el avance actual como borrador o guardar y continuar al siguiente apartado de la ficha."
+              : "La ficha está en una etapa de revisión y actualmente no permite edición."}
             </p>
-
+                {canEdit ? (
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="submit"
@@ -562,6 +572,7 @@ export default function MetodologiaPage() {
                 {saving ? "Guardando..." : "Guardar y continuar"}
               </button>
             </div>
+            ) : null}
           </div>
         </form>
       </div>

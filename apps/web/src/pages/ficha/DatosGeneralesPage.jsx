@@ -4,6 +4,7 @@ import { getUser } from "../../lib/auth";
 import { apiFetch } from "../../lib/api";
 import { useBuenaPractica } from "../../hooks/useBuenaPractica";
 import { Trash2 } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
 
 const initialForm = {
   titulo: "",
@@ -19,6 +20,8 @@ const responsableVacio = {
   correo: "",
   telefono: "",
 };
+
+
 
 export default function DatosGeneralesPage() {
   const { id } = useParams();
@@ -41,6 +44,8 @@ export default function DatosGeneralesPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const { reloadValidacion, canEdit } = useOutletContext();
 
 
   useEffect(() => {
@@ -185,13 +190,14 @@ export default function DatosGeneralesPage() {
         }),
       });
 
-      await reload();
-
+      
+      await reloadValidacion();
       if (goNext) {
         navigate(`/app/ficha/${id}/contexto`, { replace: false });
         return;
       }
 
+      await reload();
       setSuccess("Datos generales actualizados correctamente.");
     } catch (err) {
       setSaveError(err.message || "No fue posible actualizar los datos generales.");
@@ -236,6 +242,11 @@ export default function DatosGeneralesPage() {
   return (
     <div className="space-y-8">
       {/* Encabezado */}
+      {!canEdit ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          La ficha se encuentra en <strong>{buenaPractica?.buena_practica_estatus?.nombre}</strong> y actualmente no permite edición.
+        </div>
+      ) : null}
     <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-slate-900">
             1. Datos generales
@@ -584,10 +595,11 @@ export default function DatosGeneralesPage() {
         {/* Acciones */}
         <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Puedes guardar el avance actual como borrador o guardar y continuar
-            al siguiente apartado de la ficha.
+            {canEdit
+              ? "Puedes guardar el avance actual como borrador o guardar y continuar al siguiente apartado de la ficha."
+              : "La ficha está en una etapa de revisión y actualmente no permite edición."}
         </p>
-
+              {canEdit ? (
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
@@ -606,6 +618,7 @@ export default function DatosGeneralesPage() {
               {saving ? "Guardando..." : "Guardar y continuar"}
             </button>
           </div>
+          ) : null}
         </div>
       </form>
     </div>

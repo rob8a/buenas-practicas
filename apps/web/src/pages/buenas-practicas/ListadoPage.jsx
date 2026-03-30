@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
 import AppShell from "../../components/layout/AppShell";
 
-const MOCK_ALINEACIONES = [
+/* const MOCK_ALINEACIONES = [
   { id: 1, grupo: "FUNCION_SUSTANTIVA", nombre: "Docencia" },
   { id: 2, grupo: "FUNCION_SUSTANTIVA", nombre: "Investigación" },
   { id: 3, grupo: "FUNCION_SUSTANTIVA", nombre: "Extensión" },
@@ -26,7 +26,7 @@ const MOCK_UNIDADES = [
   { id: 3, nombre: "Facultad de Medicina" },
   { id: 4, nombre: "Facultad de Ciencias de la Educación" },
   { id: 5, nombre: "Delegación Colima" },
-];
+]; */
 
 const PAGE_SIZE = 5;
 
@@ -53,8 +53,29 @@ export default function ListadoPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [alineaciones, setAlineaciones] = useState([]);
+  const [unidades, setUnidades] = useState([]);
+
   const popoverRef = useRef(null);
   const unidadRef = useRef(null);
+
+  useEffect(() => {
+    async function loadCatalogos() {
+      try {
+        const [resAlineaciones, resUnidades] = await Promise.all([
+          apiFetch("/api/v1/alineaciones"),
+          apiFetch("/api/v1/unidades-organizacionales"),
+        ]);
+
+        setAlineaciones(resAlineaciones.data || []);
+        setUnidades(resUnidades.data || []);
+      } catch (err) {
+        console.error("Error cargando catálogos", err);
+      }
+    }
+
+    loadCatalogos();
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -131,36 +152,28 @@ export default function ListadoPage() {
 
   const alineacionesAgrupadas = useMemo(() => {
     return {
-      FUNCION_SUSTANTIVA: MOCK_ALINEACIONES.filter(
-        (item) => item.grupo === "FUNCION_SUSTANTIVA"
-      ),
-      CRITERIO_SEAES: MOCK_ALINEACIONES.filter(
-        (item) => item.grupo === "CRITERIO_SEAES"
-      ),
-      PROGRAMA_SECTORIAL: MOCK_ALINEACIONES.filter(
-        (item) => item.grupo === "PROGRAMA_SECTORIAL"
-      ),
-      EJE_TRANSVERSAL: MOCK_ALINEACIONES.filter(
-        (item) => item.grupo === "EJE_TRANSVERSAL"
-      ),
+      FUNCION_SUSTANTIVA: alineaciones.filter(a => a.grupo === "FUNCION_SUSTANTIVA"),
+      CRITERIO_SEAES: alineaciones.filter(a => a.grupo === "CRITERIO_SEAES"),
+      PROGRAMA_SECTORIAL: alineaciones.filter(a => a.grupo === "PROGRAMA_SECTORIAL"),
+      EJE_TRANSVERSAL: alineaciones.filter(a => a.grupo === "EJE_TRANSVERSAL"),
     };
-  }, []);
+  }, [alineaciones]);
 
   const alineacionesSeleccionadasDetalle = useMemo(() => {
-    return MOCK_ALINEACIONES.filter((item) =>
+    return alineaciones.filter((item) =>
       alineacionesSeleccionadas.includes(item.id)
     );
-  }, [alineacionesSeleccionadas]);
+  }, [alineacionesSeleccionadas, alineaciones]);
 
   const unidadesFiltradas = useMemo(() => {
-    const term = unidadInput.trim().toLowerCase();
+    const term = normalizeText(unidadInput.trim());
 
-    if (!term) return MOCK_UNIDADES.slice(0, 8);
+    if (!term) return unidades.slice(0, 8);
 
-    return MOCK_UNIDADES.filter((unidad) =>
-      unidad.nombre.toLowerCase().includes(term)
-    ).slice(0, 8);
-  }, [unidadInput]);
+    return unidades
+      .filter((unidad) => normalizeText(unidad.nombre).includes(term))
+      .slice(0, 8);
+  }, [unidadInput, unidades]);
 
   function toggleAlineacion(id) {
     setAlineacionesSeleccionadas((prev) =>
@@ -237,7 +250,7 @@ export default function ListadoPage() {
                       key={item.id}
                       className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700"
                     >
-                      {formatGrupoLabel(item.grupo)}: {item.nombre}
+                      {formatGrupoLabel(item.grupo)}: {item.valor}
                       <button
                         type="button"
                         onClick={() => toggleAlineacion(item.id)}
@@ -561,7 +574,7 @@ function CheckboxGroup({ title, items, selected, onToggle }) {
               onChange={() => onToggle(item.id)}
               className="h-4 w-4 rounded border-slate-300"
             />
-            <span>{item.nombre}</span>
+            <span>{item.valor}</span>
           </label>
         ))}
       </div>
@@ -634,4 +647,11 @@ function formatFecha(fecha) {
   } catch {
     return fecha;
   }
+}
+
+function normalizeText(text) {
+  return String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }

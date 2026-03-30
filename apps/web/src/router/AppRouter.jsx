@@ -17,6 +17,10 @@ import EvaluacionPage from "../pages/ficha/EvaluacionPage";
 import ImpactoPage from "../pages/ficha/ImpactoPage";
 import ConclusionesPage from "../pages/ficha/ConclusionesPage";
 import ListadoPage from "../pages/buenas-practicas/ListadoPage";
+import AutoevaluacionPage from "../pages/AutoevaluacionPage";
+import EvaluacionParesPage from "../pages/EvaluacionParesPage";
+import FichaResumenPage from "../pages/ficha/FichaResumenPage";
+import EvaluacionInstitucionalPage from "../pages/EvaluacionInstitucionalPage";
 
 export default function AppRouter() {
   return (
@@ -87,22 +91,13 @@ export default function AppRouter() {
 
       </Route>
 
-      <Route
-        path="/app/autoevaluacion"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Autoevaluación" />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/app/autoevaluacion" element={<AutoevaluacionPage />} />
+
+      <Route path="/app/evaluacion-pares" element={<EvaluacionParesPage />} />
 
       <Route
-        path="/app/evaluacion-pares"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Evaluación de pares" />
-          </ProtectedRoute>
-        }
+        path="/app/evaluacion-institucional"
+        element={<EvaluacionInstitucionalPage />}
       />
 
       <Route
@@ -113,6 +108,8 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       />
+
+      <Route path="/app/ficha/:id/resumen" element={<FichaResumenPage />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

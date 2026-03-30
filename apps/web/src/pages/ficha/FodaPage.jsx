@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
 import { useBuenaPractica } from "../../hooks/useBuenaPractica";
+import { useOutletContext } from "react-router-dom";
 
 const initialForm = {
   fortalezas: "",
@@ -20,6 +21,8 @@ export default function FodaPage() {
   const [saveError, setSaveError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const { reloadValidacion, canEdit } = useOutletContext();
 
   useEffect(() => {
     if (!buenaPractica) return;
@@ -55,6 +58,7 @@ export default function FodaPage() {
         body: JSON.stringify(form),
         });
 
+        await reloadValidacion();
       if (goNext) {
         navigate(`/app/ficha/${id}/participacion`);
         return;
@@ -105,6 +109,11 @@ export default function FodaPage() {
 
   return (
     <div className="space-y-8">
+      {!canEdit ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          La ficha se encuentra en <strong>{buenaPractica?.buena_practica_estatus?.nombre}</strong> y actualmente no permite edición.
+        </div>
+      ) : null}
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-slate-900">
           2.5 Análisis FODA
@@ -227,10 +236,11 @@ export default function FodaPage() {
 
         <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Puedes guardar el avance actual como borrador o guardar y continuar al
-            siguiente apartado de la ficha.
+            {canEdit
+              ? "Puedes guardar el avance actual como borrador o guardar y continuar al siguiente apartado de la ficha."
+              : "La ficha está en una etapa de revisión y actualmente no permite edición."}
           </p>
-
+              {canEdit ? (
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
@@ -249,6 +259,7 @@ export default function FodaPage() {
               {saving ? "Guardando..." : "Guardar y continuar"}
             </button>
           </div>
+          ) : null}
         </div>
       </form>
     </div>
@@ -272,7 +283,7 @@ function FodaField({
     amber: "border-amber-200 bg-amber-50/40",
     rose: "border-rose-200 bg-rose-50/40",
   };
-
+  const { canEdit } = useOutletContext();
   return (
     <div className={`rounded-2xl border p-4 ${toneClasses[tone] || toneClasses.slate}`}>
       <label className="mb-2 block text-sm font-semibold text-slate-800">
@@ -287,7 +298,14 @@ function FodaField({
         onChange={onChange}
         rows={6}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+        disabled={!canEdit}
+        className={[
+          "w-full rounded-xl px-4 py-3 outline-none",
+          !canEdit
+            ? `bg-slate-50 text-slate-700 border border-slate-200 cursor-default ${toneClasses[tone] || toneClasses.slate}`
+            : "border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+        ].join(" ")}
+        // className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
       />
     </div>
   );
